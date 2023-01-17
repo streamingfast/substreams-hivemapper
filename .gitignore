@@ -1,0 +1,7 @@
+.envrc
+.idea
+/target/
+*.spkg
+*~
+/env/
+/build
