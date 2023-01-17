@@ -1,0 +1,31 @@
+specVersion: v0.1.0
+package:
+  name: hivemapper
+  version: v0.1.3-beta
+  url: https://github.com/streamingfast/substrreams-hivemapper
+  doc: |
+    These substream modules compose all the things to build up the Hivemapper substreams.
+    See individual modules docs for help.
+
+imports:
+  sol: https://github.com/streamingfast/sf-solana/releases/download/v0.1.0/solana-v0.1.0.spkg
+
+protobuf:
+  files:
+    - hivemapper/v1/hivemapper.proto
+  importPaths:
+    - ./proto
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: target/wasm32-unknown-unknown/release/substreams_hivemapper.wasm
+
+modules:
+  - name: map_holders
+    kind: map
+    initialBlock: 12369621
+    inputs:
+      - source: sf.solana.type.v1.Block
+    output:
+      type: proto:hivemapper.types.v1.Holders

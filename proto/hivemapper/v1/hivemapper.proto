@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package hivemapper.types.v1;
+
+message Holders {
+  repeated Holder holders = 1;
+}
+
+message Holder {
+  string wallet_address = 1;
+  uint64 balance = 2;
+}
