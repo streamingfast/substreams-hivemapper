@@ -24,7 +24,7 @@ binaries:
 modules:
   - name: map_holders
     kind: map
-    initialBlock: 12369621
+    initialBlock: 158558168
     inputs:
       - source: sf.solana.type.v1.Block
     output:
