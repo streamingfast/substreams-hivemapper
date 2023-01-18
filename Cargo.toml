@@ -8,6 +8,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
+bs58 = "0.4.0"
 wasm-bindgen = "0.2.79"
 prost = "0.11.0"
 prost-types = "0.11.0"
