@@ -16,18 +16,26 @@ const HONEY_CONTRACT_ADDRESS: &str = "4vMsoUT2BWatFweudnQM1xedRLfJgJ7hswhcpz4xgB
 pub fn map_holders(block: spl::Block) -> Result<Holders, Error> {
     let holders = Holders::default();
 
-    for trx in block.transactions {
-        if let Some(meta) = trx.meta {
+    for confirmed_trx in block.transactions {
+        if let Some(meta) = confirmed_trx.meta {
             if let Some(_) = meta.err {
                 continue;
             }
-            if let Some(transaction) = trx.transaction {
-                if let Some(msg) = transaction.message {
+            if let Some(trx) = confirmed_trx.transaction {
+                let trx_id = bs58::encode(&trx.signatures[0]).into_string();
+
+                if let Some(msg) = trx.message {
                     for inst in msg.instructions {
                         let program_id = &msg.account_keys[inst.program_id_index as usize];
-                        if bs58::encode(program_id).into_string()
-                            != "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-                        {
+                        let account_id = bs58::encode(program_id).into_string();
+                        // log::info!("account id {}", account_id);
+                        // if account_id == HONEY_CONTRACT_ADDRESS {
+                        //     log::info!("transferring honey {}", trx_id);
+                        // }
+
+                        // continue;
+
+                        if account_id != TOKEN_PROGRAM {
                             continue;
                         }
 
@@ -40,20 +48,25 @@ pub fn map_holders(block: spl::Block) -> Result<Holders, Error> {
                         match instruction {
                             TokenInstruction::Transfer { amount } => {
                                 native_amount = amount;
-                                from_account_addr = bs58::encode(
-                                    &msg.account_keys[inst.accounts[0] as usize].to_vec(),
-                                )
-                                .into_string();
-                                to_account_addr = bs58::encode(
-                                    &msg.account_keys[inst.accounts[1] as usize].to_vec(),
-                                )
-                                .into_string();
+                                from_account_addr =
+                                    bs58::encode(&msg.account_keys[0].to_vec()).into_string();
+                                to_account_addr =
+                                    bs58::encode(&msg.account_keys[1].to_vec()).into_string();
                             }
                             TokenInstruction::TransferChecked {
                                 amount,
                                 decimals: _,
                             } => {
+                                // todo: are we interested in multi signature owner/delegates?
+                                log::info!("trx_id {}", trx_id);
                                 native_amount = amount;
+                                // from_account_addr =
+                                //     bs58::encode(&msg.account_keys[0].to_vec()).into_string();
+                                // mint_addr =
+                                //     bs58::encode(&msg.account_keys[1].to_vec()).into_string();
+                                // to_account_addr =
+                                //     bs58::encode(&msg.account_keys[2].to_vec()).into_string();
+
                                 from_account_addr = bs58::encode(
                                     &msg.account_keys[inst.accounts[0] as usize].to_vec(),
                                 )
@@ -66,19 +79,16 @@ pub fn map_holders(block: spl::Block) -> Result<Holders, Error> {
                                     &msg.account_keys[inst.accounts[2] as usize].to_vec(),
                                 )
                                 .into_string();
+
+                                // log::info!("amount transferred {}", amount);
+                                // log::info!("from_account_addr {}", from_account_addr);
+                                // log::info!("to_account_addr {}", to_account_addr);
+                                // log::info!("mint_addr {}", mint_addr);
+                                //todo: here we have a valid transfer of tokens, we need to emit an
+                                // event
                             }
                             _ => {}
                         }
-
-                        if mint_addr.eq(HONEY_CONTRACT_ADDRESS) {
-                            log::info!("native amount {} from_account_addr {} to_account_addr {} mint_addr {}", native_amount, from_account_addr, to_account_addr, mint_addr);
-                        }
-
-                        //todo: instruction data: seems that I have to check the mint and that it is the same as the
-                        // HONEY_CONTRACT_ADDRESS
-                        // also, julien said something about the transfer checked event -> are we interested in the Transfer event?
-                        // as in if we have a transferChecked, does it also emit a transfer event? or there are 2 completely
-                        // different things??
                     }
                 }
             }
