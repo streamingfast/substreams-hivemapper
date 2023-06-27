@@ -7,9 +7,6 @@ package:
     These substream modules compose all the things to build up the Hivemapper substreams.
     See individual modules docs for help.
 
-imports:
-  sol: https://github.com/streamingfast/sf-solana/releases/download/v0.1.0/solana-v0.1.0.spkg
-
 protobuf:
   files:
     - hivemapper/v1/hivemapper.proto
@@ -22,10 +19,10 @@ binaries:
     file: target/wasm32-unknown-unknown/release/substreams_hivemapper.wasm
 
 modules:
-  - name: map_holders
+  - name: map_token_splitting_payments
     kind: map
     initialBlock: 158558168
     inputs:
       - source: sf.solana.type.v1.Block
     output:
-      type: proto:hivemapper.types.v1.Holders
+      type: proto:hivemapper.types.v1.TokenSplittingContractPayments
