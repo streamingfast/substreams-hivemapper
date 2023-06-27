@@ -25,4 +25,4 @@ modules:
     inputs:
       - source: sf.solana.type.v1.Block
     output:
-      type: proto:hivemapper.types.v1.TokenSplittingContractPayments
+      type: proto:hivemapper.types.v1.TokenSplittingPayments

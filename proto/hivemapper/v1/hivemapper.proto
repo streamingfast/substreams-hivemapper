@@ -2,13 +2,13 @@ syntax = "proto3";
 
 package hivemapper.types.v1;
 
-message TokenSplittingContractPayments {
-  repeated TokenSplittingContractPayment payments = 1;
+message TokenSplittingPayments {
+  repeated TokenSplittingPayment payments = 1;
 }
 
-message TokenSplittingContractPayment {
-  Payment account_one = 1;
-  Payment account_two = 2;
+message TokenSplittingPayment {
+  Payment manager = 1;
+  Payment driver = 2;
 }
 
 message DriverRewards {
@@ -36,7 +36,9 @@ message AITrainerReward {
 }
 
 message Payment {
-  string transaction_id = 1;
-  string to = 2;
-  double amount = 3;
+  int64 timestamp = 1;
+  string transaction_id = 2;
+  string address = 3;
+  string address_owner = 4;
+  double amount = 5;
 }
