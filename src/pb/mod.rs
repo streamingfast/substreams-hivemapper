@@ -1,9 +1,10 @@
-#[allow(unused_imports)]
-#[allow(dead_code)]
-#[path = "./hivemapper.types.v1.rs"]
-pub mod hivemapper;
-
-#[allow(dead_code)]
-#[allow(unused_imports)]
-#[path = "./sf.solana.type.v1.rs"]
-pub mod spl;
+// @generated
+pub mod hivemapper {
+    pub mod types {
+        // @@protoc_insertion_point(attribute:hivemapper.types.v1)
+        pub mod v1 {
+            include!("hivemapper.types.v1.rs");
+            // @@protoc_insertion_point(hivemapper.types.v1)
+        }
+    }
+}
