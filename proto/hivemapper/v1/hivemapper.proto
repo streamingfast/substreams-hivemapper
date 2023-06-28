@@ -16,7 +16,14 @@ message DriverRewards {
 }
 
 message DriverReward {
+  enum DRIVER_TYPE {
+    UNSET = 0;
+    REGULAR = 1; // Someone not part of a fleet
+    NO_SPLIT = 2; // We can't know if it's a manager or a fleet member at this point
+  }
+
   Payment payment = 1;
+  DRIVER_TYPE type = 2;
 }
 
 message DriverFoundationRewards {
