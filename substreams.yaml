@@ -27,7 +27,7 @@ modules:
     output:
       type: proto:hivemapper.types.v1.TokenSplittingPayments
 
-  - name: map_regular_driver_payments
+  - name: map_driver_payments
     kind: map
     initialBlock: 158558168
     inputs:

@@ -5,6 +5,14 @@ pub fn amount_to_decimals(amount: f64, decimal: f64) -> f64 {
     return amount.div(&(base.powf(decimal)));
 }
 
+pub fn fetch_account_to(account_keys: &Vec<Vec<u8>>, position: u8) -> String {
+    // Instruction account will contain the list of accounts to fetch in the accounts list
+    // inst account pos 0 -> mint_info
+    // inst account pos 1 -> destination_account_info
+    // inst account pos 2 -> owner_info
+    return bs58::encode(&account_keys[position as usize]).into_string();
+}
+
 #[cfg(test)]
 mod test {
     use crate::utils::amount_to_decimals;
