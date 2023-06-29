@@ -34,3 +34,11 @@ modules:
       - source: sf.solana.type.v1.Block
     output:
       type: proto:hivemapper.types.v1.DriverRewards
+
+  - name: map_ai_trainer_payments
+    kind: map
+    initialBlock: 158558168
+    inputs:
+      - source: sf.solana.type.v1.Block
+    output:
+      type: proto:hivemapper.types.v1.AiTrainerPayments

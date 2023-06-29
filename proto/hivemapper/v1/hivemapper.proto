@@ -11,11 +11,11 @@ message TokenSplittingPayment {
   Payment driver = 2;
 }
 
-message DriverRewards {
-  repeated DriverReward rewards = 1;
+message DriverPayments {
+  repeated DriverPayment rewards = 1;
 }
 
-message DriverReward {
+message DriverPayment {
   enum DRIVER_TYPE {
     UNSET = 0;
     REGULAR = 1; // Someone not part of a fleet
@@ -26,19 +26,19 @@ message DriverReward {
   DRIVER_TYPE type = 2;
 }
 
-message DriverFoundationRewards {
-  repeated DriverFoundationReward rewards = 1;
+message DriverFoundationPayments {
+  repeated DriverFoundationPayment rewards = 1;
 }
 
-message DriverFoundationReward {
+message DriverFoundationPayment {
   Payment payment = 1;
 }
 
-message AITrainerRewards {
-  repeated AITrainerReward rewards = 1;
+message AiTrainerPayments {
+  repeated AiTrainerPayment payments = 1;
 }
 
-message AITrainerReward {
+message AiTrainerPayment {
   Payment payment = 1;
 }
 
@@ -46,6 +46,5 @@ message Payment {
   int64 timestamp = 1;
   string transaction_id = 2;
   string address = 3;
-  string address_owner = 4;
-  double amount = 5;
+  double amount = 4;
 }
