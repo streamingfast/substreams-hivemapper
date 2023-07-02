@@ -1,4 +1,6 @@
+use crate::HONEY_CONTRACT_ADDRESS;
 use std::ops::Div;
+use substreams_solana::pb::sol::v1::TokenBalance;
 
 pub fn amount_to_decimals(amount: f64, decimal: f64) -> f64 {
     let base: f64 = 10.0;
@@ -11,6 +13,16 @@ pub fn fetch_account_to(account_keys: &Vec<Vec<u8>>, position: u8) -> String {
     // inst account pos 1 -> destination_account_info
     // inst account pos 2 -> owner_info
     return bs58::encode(&account_keys[position as usize]).into_string();
+}
+
+pub fn valid_honey_token_transfer(pre_token_balances: &Vec<TokenBalance>, account: &String) -> bool {
+    for token_balance in pre_token_balances.iter() {
+        if token_balance.owner.eq(account) && token_balance.mint.eq(HONEY_CONTRACT_ADDRESS) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 #[cfg(test)]

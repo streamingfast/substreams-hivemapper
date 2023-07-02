@@ -6,25 +6,13 @@
    - this will create 2 `mintTo` instructions where the amount will be sent to the accounts (account 1 and account 2)
      we cannot know what account is the manager
 2. payments from the foundation
+   - This will come out of the transfers and will be filtered upstream
    - top-up (out of region) program (assumption that fleet and non-fleet is the same thing)
-     - ```bash
-          {
-             "info": {
-                "amount": "19808387735",
-                "authority": "CzcjceA4TvMguDjE7ZyZ4HWV9qxwv2ndHVHZSSeythfp",
-                "destination": "9Ez4DVJxv74sGpjjYXAJjrMsuFRFRF3su6jkXwzSF6TP",
-                "source": "AwjomjhbNqkgEZN1ADvbEcTYsDfBuX4AKzNmxwgtKvxM"
-             },
-             "type": "transfer"
-          }
-       ```
-         > destination's owner is the account of a driver in an out of region drive / payment
-         > source: where the money comes out of
-     - fleet:
-     - non-fleet:
+     - fleet
+     - non-fleet
    - bounties (to incentives certain locations for mapping)
-3. regular mints -> regular (not part of a fleet)
-4. all ai-trainer rewards
+3. regular payments -> regular (not part of a fleet) -> DONE
+4. all ai-trainer rewards -> DONE
 
 ----------
 Fleet Payment:
