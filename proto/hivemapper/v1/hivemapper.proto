@@ -46,7 +46,7 @@ message Payment {
   int64 timestamp = 1;
   string transaction_id = 2;
   string address = 3;
-  double amount = 4;
+  int64 amount = 4;
 }
 
 message Transfers {
@@ -58,5 +58,64 @@ message Transfer {
   int64 timestamp = 2;
   string from = 3;
   string to = 4;
-  double amount = 5;
+  int64 amount = 5;
+}
+
+message Mints {
+  repeated Mint mints = 1;
+}
+
+message Mint {
+  string trx_id = 1;
+  int64 timestamp = 2;
+  string to = 4;
+  int64 amount = 5;
+}
+
+message Burns {
+  repeated Burn burns = 1;
+}
+
+message Burn {
+  string trx_id = 1;
+  int64 timestamp = 2;
+  string from = 3;
+  int64 amount = 5;
+}
+
+message TransferCheckeds {
+  repeated TransferChecked transfer_checkeds = 1;
+}
+
+message TransferChecked {
+  string trx_id = 1;
+  int64 timestamp = 2;
+  string from = 3;
+  string to = 4;
+  int64 amount = 5;
+  int32 decimals = 6;
+}
+
+message MintToCheckeds {
+  repeated MintToChecked mint_checkeds = 1;
+}
+
+message MintToChecked {
+  string trx_id = 1;
+  int64 timestamp = 2;
+  string to = 4;
+  int64 amount = 5;
+  int32 decimals = 6;
+}
+
+message BurnCheckeds {
+  repeated BurnChecked burn_checkeds = 1;
+}
+
+message BurnChecked {
+  string trx_id = 1;
+  int64 timestamp = 2;
+  string from = 3;
+  int64 amount = 5;
+  int32 decimals = 6;
 }
