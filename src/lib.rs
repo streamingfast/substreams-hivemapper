@@ -342,43 +342,49 @@ pub fn map_transfers(block: Block) -> Result<Transfers, Error> {
                 }
             }
         }
-        // if let Some(meta) = &confirmed_trx.meta {
-        //     for inner_transaction in meta.inner_instructions.iter() {
-        //         for inst in inner_transaction.instructions.iter() {
-        //             let instruction_program_account =
-        //                 bs58::encode(&msg_accounts[inst.program_id_index as usize]).into_string();
-        //
-        //             if instruction_program_account != TOKEN_PROGRAM {
-        //                 continue;
-        //             }
-        //
-        //             let source = bs58::encode(&msg_accounts[inst.accounts[0] as usize]).into_string();
-        //             let destination = bs58::encode(&msg_accounts[inst.accounts[1] as usize]).into_string();
-        //             let authority = bs58::encode(&msg_accounts[inst.accounts[2] as usize]).into_string();
-        //
-        //             let instruction = TokenInstruction::unpack(&inst.data)?;
-        //             let mut amount = 0.0;
-        //             match instruction {
-        //                 TokenInstruction::Transfer { amount: amt } => {
-        //                     amount = utils::amount_to_decimals(amt as f64, HONEY_TOKEN_DECIMALS as f64);
-        //                 }
-        //                 _ => continue,
-        //             }
-        //
-        //             if let Some(meta) = &confirmed_trx.meta {
-        //                 if utils::valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
-        //                     transfers.push(Transfer {
-        //                         trx_id: trx_id.clone(),
-        //                         timestamp,
-        //                         from: source,
-        //                         to: destination,
-        //                         amount,
-        //                     });
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+        if let Some(meta) = &confirmed_trx.meta {
+            for inner_transaction in meta.inner_instructions.iter() {
+                for inst in inner_transaction.instructions.iter() {
+                    if trx_id
+                        == "2uYRfNxMjM4uWKHQ5xckX2F8W3skNwYcSU7nEpZxdvAFdznwzG8sFJyYSQyRs4M2S2EmLkq4Bus2v79XKNzkFywe"
+                            .to_owned()
+                    {
+                        log::info!("trx {:?}", confirmed_trx.meta);
+                    }
+                    let instruction_program_account =
+                        bs58::encode(&msg_accounts[inst.program_id_index as usize]).into_string();
+
+                    if instruction_program_account != TOKEN_PROGRAM {
+                        continue;
+                    }
+
+                    let source = bs58::encode(&msg_accounts[inst.accounts[0] as usize]).into_string();
+                    let destination = bs58::encode(&msg_accounts[inst.accounts[1] as usize]).into_string();
+                    let authority = bs58::encode(&msg_accounts[inst.accounts[2] as usize]).into_string();
+
+                    let instruction = TokenInstruction::unpack(&inst.data)?;
+                    let mut amount = 0.0;
+                    match instruction {
+                        TokenInstruction::Transfer { amount: amt } => {
+                            amount = utils::amount_to_decimals(amt as f64, HONEY_TOKEN_DECIMALS as f64);
+                        }
+                        _ => continue,
+                    }
+
+                    if let Some(meta) = &confirmed_trx.meta {
+                        if utils::valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
+                            transfers.push(Transfer {
+                                trx_id: trx_id.clone(),
+                                timestamp,
+                                from: source,
+                                to: destination,
+                                amount,
+                            });
+                        }
+                    }
+                }
+            }
+        }
     }
 
     Ok(Transfers { transfers })
