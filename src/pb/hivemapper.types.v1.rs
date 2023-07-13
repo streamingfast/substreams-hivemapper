@@ -22,6 +22,8 @@ pub struct Output {
     pub mint_to_checks: ::prost::alloc::vec::Vec<MintToChecked>,
     #[prost(message, repeated, tag="10")]
     pub burn_checks: ::prost::alloc::vec::Vec<BurnChecked>,
+    #[prost(message, repeated, tag="11")]
+    pub initialized_account: ::prost::alloc::vec::Vec<InitializedAccount>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -47,7 +49,7 @@ pub mod driver_payment {
         Unset = 0,
         /// Someone not part of a fleet
         Regular = 1,
-        /// We can't know if it's a manager or a fleet member at this point
+        /// We can't know if it's a fleet or a fleet driver at this point
         NoSplit = 2,
     }
     impl DriverType {
@@ -176,5 +178,17 @@ pub struct BurnChecked {
     pub amount: i64,
     #[prost(int32, tag="6")]
     pub decimals: i32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct InitializedAccount {
+    #[prost(string, tag="1")]
+    pub trx_hash: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub account: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub mint: ::prost::alloc::string::String,
+    #[prost(string, tag="4")]
+    pub owner: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

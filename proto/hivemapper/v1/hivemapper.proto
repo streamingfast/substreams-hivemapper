@@ -13,6 +13,7 @@ message Output {
   repeated TransferChecked transfer_checks = 8;
   repeated MintToChecked mint_to_checks = 9;
   repeated BurnChecked burn_checks = 10;
+  repeated InitializedAccount initialized_account = 11;
 }
 
 message TokenSplittingPayment {
@@ -24,7 +25,7 @@ message DriverPayment {
   enum DRIVER_TYPE {
     UNSET = 0;
     REGULAR = 1; // Someone not part of a fleet
-    NO_SPLIT = 2; // We can't know if it's a manager or a fleet member at this point
+    NO_SPLIT = 2; // We can't know if it's a fleet or a fleet driver at this point
   }
 
   Payment payment = 1;
@@ -90,4 +91,11 @@ message BurnChecked {
   string from = 3;
   int64 amount = 5;
   int32 decimals = 6;
+}
+
+message InitializedAccount {
+  string trx_hash = 1;
+  string account = 2;
+  string mint = 3;
+  string owner = 4;
 }
