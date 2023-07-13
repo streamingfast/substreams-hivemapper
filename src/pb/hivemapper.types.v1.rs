@@ -25,23 +25,11 @@ pub struct Output {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TokenSplittingPayments {
-    #[prost(message, repeated, tag="1")]
-    pub payments: ::prost::alloc::vec::Vec<TokenSplittingPayment>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TokenSplittingPayment {
     #[prost(message, optional, tag="1")]
     pub manager: ::core::option::Option<Payment>,
     #[prost(message, optional, tag="2")]
     pub driver: ::core::option::Option<Payment>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DriverPayments {
-    #[prost(message, repeated, tag="1")]
-    pub rewards: ::prost::alloc::vec::Vec<DriverPayment>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -87,21 +75,9 @@ pub mod driver_payment {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DriverFoundationPayments {
-    #[prost(message, repeated, tag="1")]
-    pub rewards: ::prost::alloc::vec::Vec<DriverFoundationPayment>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DriverFoundationPayment {
     #[prost(message, optional, tag="1")]
     pub payment: ::core::option::Option<Payment>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AiTrainerPayments {
-    #[prost(message, repeated, tag="1")]
-    pub payments: ::prost::alloc::vec::Vec<AiTrainerPayment>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -115,23 +91,15 @@ pub struct Payment {
     #[prost(int64, tag="1")]
     pub timestamp: i64,
     #[prost(string, tag="2")]
-    pub transaction_id: ::prost::alloc::string::String,
-    #[prost(string, tag="3")]
-    pub address: ::prost::alloc::string::String,
-    #[prost(double, tag="4")]
-    pub amount: f64,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Transfers {
-    #[prost(message, repeated, tag="1")]
-    pub transfers: ::prost::alloc::vec::Vec<Transfer>,
+    pub trx_hash: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="3")]
+    pub mint: ::core::option::Option<Mint>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Transfer {
     #[prost(string, tag="1")]
-    pub trx_id: ::prost::alloc::string::String,
+    pub trx_hash: ::prost::alloc::string::String,
     #[prost(int64, tag="2")]
     pub timestamp: i64,
     #[prost(string, tag="3")]
@@ -140,18 +108,12 @@ pub struct Transfer {
     pub to: ::prost::alloc::string::String,
     #[prost(double, tag="5")]
     pub amount: f64,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Mints {
-    #[prost(message, repeated, tag="1")]
-    pub mints: ::prost::alloc::vec::Vec<Mint>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Mint {
     #[prost(string, tag="1")]
-    pub trx_id: ::prost::alloc::string::String,
+    pub trx_hash: ::prost::alloc::string::String,
     #[prost(int64, tag="2")]
     pub timestamp: i64,
     #[prost(string, tag="4")]
@@ -161,15 +123,9 @@ pub struct Mint {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Burns {
-    #[prost(message, repeated, tag="1")]
-    pub burns: ::prost::alloc::vec::Vec<Burn>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Burn {
     #[prost(string, tag="1")]
-    pub trx_id: ::prost::alloc::string::String,
+    pub trx_hash: ::prost::alloc::string::String,
     #[prost(int64, tag="2")]
     pub timestamp: i64,
     #[prost(string, tag="3")]
@@ -179,15 +135,9 @@ pub struct Burn {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TransferCheckeds {
-    #[prost(message, repeated, tag="1")]
-    pub transfer_checkeds: ::prost::alloc::vec::Vec<TransferChecked>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransferChecked {
     #[prost(string, tag="1")]
-    pub trx_id: ::prost::alloc::string::String,
+    pub trx_hash: ::prost::alloc::string::String,
     #[prost(int64, tag="2")]
     pub timestamp: i64,
     #[prost(string, tag="3")]
@@ -201,15 +151,9 @@ pub struct TransferChecked {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct MintToCheckeds {
-    #[prost(message, repeated, tag="1")]
-    pub mint_checkeds: ::prost::alloc::vec::Vec<MintToChecked>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MintToChecked {
     #[prost(string, tag="1")]
-    pub trx_id: ::prost::alloc::string::String,
+    pub trx_hash: ::prost::alloc::string::String,
     #[prost(int64, tag="2")]
     pub timestamp: i64,
     #[prost(string, tag="4")]
@@ -221,15 +165,9 @@ pub struct MintToChecked {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BurnCheckeds {
-    #[prost(message, repeated, tag="1")]
-    pub burn_checkeds: ::prost::alloc::vec::Vec<BurnChecked>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BurnChecked {
     #[prost(string, tag="1")]
-    pub trx_id: ::prost::alloc::string::String,
+    pub trx_hash: ::prost::alloc::string::String,
     #[prost(int64, tag="2")]
     pub timestamp: i64,
     #[prost(string, tag="3")]
