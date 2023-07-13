@@ -2,6 +2,21 @@ syntax = "proto3";
 
 package hivemapper.types.v1;
 
+message Output {
+  oneof PaymentType {
+      TokenSplittingPayments token_splitting_payments = 1;
+      DriverPayments driver_payments = 2;
+      DriverFoundationPayments driver_foundation_payments = 3;
+      AiTrainerPayments ai_trainer_payments = 4;
+      Transfers transfers = 5;
+      Mints mints = 6;
+      Burns burs = 7;
+      TransferCheckeds transfer_checks = 8;
+      MintToCheckeds mint_to_checks = 9;
+      BurnCheckeds burn_checks = 10;
+  }
+}
+
 message TokenSplittingPayments {
   repeated TokenSplittingPayment payments = 1;
 }
@@ -46,7 +61,7 @@ message Payment {
   int64 timestamp = 1;
   string transaction_id = 2;
   string address = 3;
-  int64 amount = 4;
+  double amount = 4;
 }
 
 message Transfers {
@@ -58,7 +73,7 @@ message Transfer {
   int64 timestamp = 2;
   string from = 3;
   string to = 4;
-  int64 amount = 5;
+  double amount = 5;
 }
 
 message Mints {
@@ -92,7 +107,7 @@ message TransferChecked {
   int64 timestamp = 2;
   string from = 3;
   string to = 4;
-  int64 amount = 5;
+  double amount = 5;
   int32 decimals = 6;
 }
 
