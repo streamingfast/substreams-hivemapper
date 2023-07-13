@@ -2,35 +2,26 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Output {
-    #[prost(oneof="output::PaymentType", tags="1, 2, 3, 4, 5, 6, 7, 8, 9, 10")]
-    pub payment_type: ::core::option::Option<output::PaymentType>,
-}
-/// Nested message and enum types in `Output`.
-pub mod output {
-    #[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum PaymentType {
-        #[prost(message, tag="1")]
-        TokenSplittingPayments(super::TokenSplittingPayments),
-        #[prost(message, tag="2")]
-        DriverPayments(super::DriverPayments),
-        #[prost(message, tag="3")]
-        DriverFoundationPayments(super::DriverFoundationPayments),
-        #[prost(message, tag="4")]
-        AiTrainerPayments(super::AiTrainerPayments),
-        #[prost(message, tag="5")]
-        Transfers(super::Transfers),
-        #[prost(message, tag="6")]
-        Mints(super::Mints),
-        #[prost(message, tag="7")]
-        Burs(super::Burns),
-        #[prost(message, tag="8")]
-        TransferChecks(super::TransferCheckeds),
-        #[prost(message, tag="9")]
-        MintToChecks(super::MintToCheckeds),
-        #[prost(message, tag="10")]
-        BurnChecks(super::BurnCheckeds),
-    }
+    #[prost(message, repeated, tag="1")]
+    pub token_splitting_payments: ::prost::alloc::vec::Vec<TokenSplittingPayment>,
+    #[prost(message, repeated, tag="2")]
+    pub driver_payments: ::prost::alloc::vec::Vec<DriverPayment>,
+    #[prost(message, repeated, tag="3")]
+    pub driver_foundation_payments: ::prost::alloc::vec::Vec<DriverFoundationPayment>,
+    #[prost(message, repeated, tag="4")]
+    pub ai_trainer_payments: ::prost::alloc::vec::Vec<AiTrainerPayment>,
+    #[prost(message, repeated, tag="5")]
+    pub transfers: ::prost::alloc::vec::Vec<Transfer>,
+    #[prost(message, repeated, tag="6")]
+    pub mints: ::prost::alloc::vec::Vec<Mint>,
+    #[prost(message, repeated, tag="7")]
+    pub burns: ::prost::alloc::vec::Vec<Burn>,
+    #[prost(message, repeated, tag="8")]
+    pub transfer_checks: ::prost::alloc::vec::Vec<TransferChecked>,
+    #[prost(message, repeated, tag="9")]
+    pub mint_to_checks: ::prost::alloc::vec::Vec<MintToChecked>,
+    #[prost(message, repeated, tag="10")]
+    pub burn_checks: ::prost::alloc::vec::Vec<BurnChecked>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

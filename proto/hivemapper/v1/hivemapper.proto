@@ -3,18 +3,16 @@ syntax = "proto3";
 package hivemapper.types.v1;
 
 message Output {
-  oneof PaymentType {
-      TokenSplittingPayments token_splitting_payments = 1;
-      DriverPayments driver_payments = 2;
-      DriverFoundationPayments driver_foundation_payments = 3;
-      AiTrainerPayments ai_trainer_payments = 4;
-      Transfers transfers = 5;
-      Mints mints = 6;
-      Burns burs = 7;
-      TransferCheckeds transfer_checks = 8;
-      MintToCheckeds mint_to_checks = 9;
-      BurnCheckeds burn_checks = 10;
-  }
+  repeated TokenSplittingPayment token_splitting_payments = 1;
+  repeated DriverPayment driver_payments = 2;
+  repeated DriverFoundationPayment driver_foundation_payments = 3;
+  repeated AiTrainerPayment ai_trainer_payments = 4;
+  repeated Transfer transfers = 5;
+  repeated Mint mints = 6;
+  repeated Burn burns = 7;
+  repeated TransferChecked transfer_checks = 8;
+  repeated MintToChecked mint_to_checks = 9;
+  repeated BurnChecked burn_checks = 10;
 }
 
 message TokenSplittingPayments {
