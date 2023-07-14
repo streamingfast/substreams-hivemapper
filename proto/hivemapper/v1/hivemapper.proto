@@ -3,47 +3,45 @@ syntax = "proto3";
 package hivemapper.types.v1;
 
 message Output {
-  repeated TokenSplittingPayment token_splitting_payments = 1;
-  repeated DriverPayment driver_payments = 2;
-  repeated DriverFoundationPayment driver_foundation_payments = 3;
-  repeated AiTrainerPayment ai_trainer_payments = 4;
-  repeated Transfer transfers = 5;
-  repeated Mint mints = 6;
-  repeated Burn burns = 7;
-  repeated TransferChecked transfer_checks = 8;
-  repeated MintToChecked mint_to_checks = 9;
-  repeated BurnChecked burn_checks = 10;
-  repeated InitializedAccount initialized_account = 11;
+  repeated TokenSplittingPayment token_splitting_payments = 10;
+  repeated RegularDriverPayment regular_driver_payments = 20;
+  repeated NoSplitPayment no_split_payments = 30;
+
+  repeated DriverFoundationPayment driver_foundation_payments = 40;
+  repeated AiTrainerPayment ai_trainer_payments = 50;
+
+  repeated Transfer trans60ers = 60;
+  repeated Mint mints = 70;
+  repeated Burn burns = 80;
+  repeated TransferChecked transfer_checks = 90;
+  repeated MintToChecked mint_to_checks = 100;
+  repeated BurnChecked burn_checks = 110;
+  repeated InitializedAccount initialized_account = 120;
 }
 
 message TokenSplittingPayment {
-  Payment manager = 1;
-  Payment driver = 2;
+  Mint manager_mint = 1;
+  Mint driver_mint = 2;
 }
 
-message DriverPayment {
-  enum DRIVER_TYPE {
-    UNSET = 0;
-    REGULAR = 1; // Someone not part of a fleet
-    NO_SPLIT = 2; // We can't know if it's a fleet or a fleet driver at this point
-  }
+message RegularDriverPayment {
+  Mint mint = 1;
+}
 
-  Payment payment = 1;
-  DRIVER_TYPE type = 2;
+message NoSplitPayment {
+  Mint mint = 1;
 }
 
 message DriverFoundationPayment {
-  Payment payment = 1;
+  Mint mint = 1;
 }
 
 message AiTrainerPayment {
-  Payment payment = 1;
+  Mint mint = 1;
 }
 
 message Payment {
-  int64 timestamp = 1;
-  string trx_hash = 2;
-  Mint mint = 3;
+  Mint mint = 1;
 }
 
 message Transfer {
@@ -58,14 +56,14 @@ message Mint {
   string trx_hash = 1;
   int64 timestamp = 2;
   string to = 4;
-  int64 amount = 5;
+  double amount = 5;
 }
 
 message Burn {
   string trx_hash = 1;
   int64 timestamp = 2;
   string from = 3;
-  int64 amount = 5;
+  double amount = 5;
 }
 
 message TransferChecked {
@@ -81,7 +79,7 @@ message MintToChecked {
   string trx_hash = 1;
   int64 timestamp = 2;
   string to = 4;
-  int64 amount = 5;
+  double amount = 5;
   int32 decimals = 6;
 }
 
@@ -89,7 +87,7 @@ message BurnChecked {
   string trx_hash = 1;
   int64 timestamp = 2;
   string from = 3;
-  int64 amount = 5;
+  double amount = 5;
   int32 decimals = 6;
 }
 
