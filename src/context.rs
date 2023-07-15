@@ -27,10 +27,22 @@ pub mod context {
     }
 
     #[derive(Debug)]
+    pub struct Transfer {}
+
+    #[derive(Debug)]
+    pub struct TransferChecked {}
+
+    #[derive(Debug)]
+    pub struct InitializeAccount {}
+
+    #[derive(Debug)]
     pub enum Type {
         TokenSplittingFleet(TokenSplittingFleet),
         RegularDriver(RegularDriver),
         NoTokenSplitting(NoTokenSplitting),
         AiTrainerRewards(AiTrainerRewards),
+        Transfer(Transfer),
+        TransferChecked(TransferChecked),
+        InitializeAccount(InitializeAccount),
     }
 }

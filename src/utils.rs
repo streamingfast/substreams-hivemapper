@@ -1,10 +1,13 @@
 use crate::constants;
 use crate::context::context;
-use crate::context::context::HMContext;
-use crate::context::context::Type::{AiTrainerRewards, NoTokenSplitting, RegularDriver, TokenSplittingFleet};
-use crate::pb::hivemapper::types::v1::{
-    AiTrainerPayment, Mint, NoSplitPayment, Output, RegularDriverPayment, TokenSplittingPayment, Transfer,
+use crate::context::context::Type::{
+    AiTrainerRewards, InitializeAccount, NoTokenSplitting, RegularDriver, TokenSplittingFleet, Transfer,
     TransferChecked,
+};
+use crate::context::context::{HMContext, Type};
+use crate::pb::hivemapper::types::v1::{
+    AiTrainerPayment, InitializedAccount, Mint, NoSplitPayment, Output, RegularDriverPayment, TokenSplittingPayment,
+    Transfer as Tr, TransferChecked as TrChecked,
 };
 use std::ops::Div;
 use substreams_solana::instruction::TokenInstruction;
@@ -113,7 +116,7 @@ pub fn process_compiled_instruction(
                 let authority = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
                 if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
                     let destination = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
-                    output.transfers.push(Transfer {
+                    output.transfers.push(Tr {
                         trx_hash: trx_hash.to_owned(),
                         timestamp,
                         from: source.to_owned(),
@@ -129,7 +132,7 @@ pub fn process_compiled_instruction(
                 let authority = bs58::encode(&accounts[inst.accounts[3] as usize]).into_string();
                 if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
                     let destination = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
-                    output.transfer_checks.push(TransferChecked {
+                    output.transfer_checks.push(TrChecked {
                         trx_hash: trx_hash.to_owned(),
                         timestamp,
                         from: source.to_owned(),
@@ -143,8 +146,45 @@ pub fn process_compiled_instruction(
         }
     }
 
+    if instruction_program_account == constants::ASSOCIATED_TOKEN_PROGRAM {
+        process_inner_instruction(
+            output,
+            timestamp,
+            trx_hash,
+            HMContext {
+                instruction_index: inst_index,
+                r#type: Some(InitializeAccount(context::InitializeAccount {})),
+            },
+            accounts,
+            &meta.inner_instructions,
+        )
+    }
+
     // transfers from inner instructions
-    // process_inner_instruction()
+    // process_inner_instruction(
+    //     output,
+    //     timestamp,
+    //     trx_hash,
+    //     HMContext {
+    //         instruction_index: inst_index,
+    //         r#type: Some(Transfer(context::Transfer {})),
+    //     },
+    //     accounts,
+    //     &meta.inner_instructions,
+    // );
+
+    // transfer_checkeds from inner instructions
+    // process_inner_instruction(
+    //     output,
+    //     timestamp,
+    //     trx_hash,
+    //     HMContext {
+    //         instruction_index: inst_index,
+    //         r#type: Some(TransferChecked(context::TransferChecked {})),
+    //     },
+    //     accounts,
+    //     &meta.inner_instructions,
+    // );
 }
 
 pub fn process_inner_instruction(
@@ -319,6 +359,49 @@ pub fn process_inner_instruction(
                 output.ai_trainer_payments.push(AiTrainerPayment { mint: payment_mint })
             }
         }
+        Transfer(_) => {
+            //todo
+        }
+        TransferChecked(_) => {
+            //todo
+        }
+        InitializeAccount(_) => {
+            inner_instructions
+                .iter()
+                .filter(|&inner_instruction| inner_instruction.index == context.instruction_index)
+                .for_each(|inner_instruction| {
+                    inner_instruction
+                        .instructions
+                        .iter()
+                        .filter(|&inst| {
+                            substreams::log::info!("inst {:?}", inst);
+                            bs58::encode(&accounts[inst.program_id_index as usize]).into_string()
+                                == constants::TOKEN_PROGRAM
+                                && inst.accounts.len() == 2 // this seems to work for InitializeAccount3
+                                && bs58::encode(&accounts[inst.accounts[1] as usize]).into_string() == constants::HONEY_CONTRACT_ADDRESS
+                        })
+                        .for_each(|inst| {
+                            let instruction = TokenInstruction::unpack(&inst.data).unwrap();
+                            let account = bs58::encode(&accounts[inst.accounts[0] as usize]).into_string();
+                            let mint = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
+                            match instruction {
+                                TokenInstruction::InitializeAccount {} => {}
+                                TokenInstruction::InitializeAccount2 { owner: ow } => {
+                                    // todo
+                                }
+                                TokenInstruction::InitializeAccount3 { owner: ow } => {
+                                    output.initialized_account.push(InitializedAccount {
+                                        trx_hash: trx_hash.to_owned(),
+                                        account,
+                                        mint,
+                                        owner: bs58::encode(ow).into_string(),
+                                    })
+                                }
+                                _ => {}
+                            }
+                        })
+                });
+        }
     }
 }
 
@@ -342,8 +425,6 @@ fn validate_token_program_instruction(accounts: &Vec<Vec<u8>>, program_id_index:
 }
 
 fn valid_honey_token_transfer(pre_token_balances: &Vec<TokenBalance>, account: &String) -> bool {
-    substreams::log::info!("pre_token_balances: {:?}", pre_token_balances);
-    substreams::log::info!("account: {}", account);
     for token_balance in pre_token_balances.iter() {
         if token_balance.owner.eq(account) && token_balance.mint.eq(constants::HONEY_CONTRACT_ADDRESS) {
             return true;

@@ -16,6 +16,13 @@ pub fn map_outputs(block: Block) -> Result<Output, Error> {
         if let Some(trx) = &confirmed_trx.transaction {
             let trx_hash = bs58::encode(&trx.signatures[0]).into_string();
 
+            // if trx_hash
+            //     == "4H8XJjWho8bmSDteuetJp4XHj4h6qwv1tMmMXrspdgGrt4hBLgW5Lz6G2DPye6Nm6476pHSDfbWmAszUe9XyzdwM".to_owned()
+            // {
+            //     substreams::log::info!("transaction: {:?}", confirmed_trx);
+            //     panic!("bye")
+            // }
+
             let msg = trx.message.as_ref().unwrap();
             let accounts = &msg.account_keys;
 
