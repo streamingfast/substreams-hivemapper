@@ -22,9 +22,15 @@ pub mod context {
     }
 
     #[derive(Debug)]
+    pub struct AiTrainerRewards {
+        pub account: String,
+    }
+
+    #[derive(Debug)]
     pub enum Type {
         TokenSplittingFleet(TokenSplittingFleet),
         RegularDriver(RegularDriver),
         NoTokenSplitting(NoTokenSplitting),
+        AiTrainerRewards(AiTrainerRewards),
     }
 }
