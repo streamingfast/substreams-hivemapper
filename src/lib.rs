@@ -3,7 +3,7 @@ mod context;
 mod pb;
 mod utils;
 
-use crate::pb::hivemapper::types::v1::{Output, TokenSplittingPayment, Transfer};
+use crate::pb::hivemapper::types::v1::Output;
 use substreams::errors::Error;
 use substreams_solana::pb::sol::v1::Block;
 
