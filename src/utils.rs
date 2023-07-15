@@ -3,11 +3,12 @@ use crate::context::context;
 use crate::context::context::HMContext;
 use crate::context::context::Type::{AiTrainerRewards, NoTokenSplitting, RegularDriver, TokenSplittingFleet};
 use crate::pb::hivemapper::types::v1::{
-    AiTrainerPayment, Mint, NoSplitPayment, Output, RegularDriverPayment, TokenSplittingPayment,
+    AiTrainerPayment, Mint, NoSplitPayment, Output, RegularDriverPayment, TokenSplittingPayment, Transfer,
+    TransferChecked,
 };
 use std::ops::Div;
 use substreams_solana::instruction::TokenInstruction;
-use substreams_solana::pb::sol::v1::{CompiledInstruction, InnerInstructions, TransactionStatusMeta};
+use substreams_solana::pb::sol::v1::{CompiledInstruction, InnerInstructions, TokenBalance, TransactionStatusMeta};
 
 pub fn process_compiled_instruction(
     output: &mut Output,
@@ -102,6 +103,48 @@ pub fn process_compiled_instruction(
             _ => {}
         }
     }
+
+    // top level transaction without any inner instructions
+    if instruction_program_account == constants::TOKEN_PROGRAM {
+        let instruction = TokenInstruction::unpack(&inst.data).unwrap();
+        let source = bs58::encode(&accounts[inst.accounts[0] as usize]).into_string();
+        match instruction {
+            TokenInstruction::Transfer { amount: amt } => {
+                let authority = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
+                if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
+                    let destination = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
+                    output.transfers.push(Transfer {
+                        trx_hash: trx_hash.to_owned(),
+                        timestamp,
+                        from: source.to_owned(),
+                        to: destination.to_owned(),
+                        amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
+                    });
+                }
+            }
+            TokenInstruction::TransferChecked {
+                amount: amt,
+                decimals: _,
+            } => {
+                let authority = bs58::encode(&accounts[inst.accounts[3] as usize]).into_string();
+                if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
+                    let destination = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
+                    output.transfer_checks.push(TransferChecked {
+                        trx_hash: trx_hash.to_owned(),
+                        timestamp,
+                        from: source.to_owned(),
+                        to: destination.to_owned(),
+                        amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
+                        decimals: constants::HONEY_TOKEN_DECIMALS as i32,
+                    })
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // transfers from inner instructions
+    // process_inner_instruction()
 }
 
 pub fn process_inner_instruction(
@@ -123,11 +166,7 @@ pub fn process_inner_instruction(
                     inner_instruction
                         .instructions
                         .iter()
-                        .filter(|&inst| {
-                            let program_id = &accounts[inst.program_id_index as usize];
-                            let account_id = bs58::encode(program_id).into_string();
-                            return account_id == constants::TOKEN_PROGRAM;
-                        })
+                        .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
                         .for_each(|inst| {
                             let account_to = fetch_account_to(&accounts, inst.accounts[1]);
                             let instruction = TokenInstruction::unpack(&inst.data).unwrap();
@@ -178,11 +217,7 @@ pub fn process_inner_instruction(
                     inner_instruction
                         .instructions
                         .iter()
-                        .filter(|&inst| {
-                            let program_id = &accounts[inst.program_id_index as usize];
-                            let account_id = bs58::encode(program_id).into_string();
-                            return account_id == constants::TOKEN_PROGRAM;
-                        })
+                        .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
                         .for_each(|inst| {
                             let account_to = fetch_account_to(&accounts, inst.accounts[1]);
                             let instruction = TokenInstruction::unpack(&inst.data).unwrap();
@@ -220,11 +255,7 @@ pub fn process_inner_instruction(
                     inner_instruction
                         .instructions
                         .iter()
-                        .filter(|&inst| {
-                            let program_id = &accounts[inst.program_id_index as usize];
-                            let account_id = bs58::encode(program_id).into_string();
-                            return account_id == constants::TOKEN_PROGRAM;
-                        })
+                        .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
                         .for_each(|inst| {
                             let account_to = fetch_account_to(&accounts, inst.accounts[1]);
                             let instruction = TokenInstruction::unpack(&inst.data).unwrap();
@@ -262,11 +293,7 @@ pub fn process_inner_instruction(
                     inner_instruction
                         .instructions
                         .iter()
-                        .filter(|&inst| {
-                            let program_id = &accounts[inst.program_id_index as usize];
-                            let account_id = bs58::encode(program_id).into_string();
-                            return account_id == constants::TOKEN_PROGRAM;
-                        })
+                        .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
                         .for_each(|inst| {
                             let account_to = fetch_account_to(&accounts, inst.accounts[1]);
                             let instruction = TokenInstruction::unpack(&inst.data).unwrap();
@@ -306,6 +333,23 @@ fn fetch_account_to(account_keys: &Vec<Vec<u8>>, position: u8) -> String {
     // inst account pos 1 -> destination_account_info
     // inst account pos 2 -> owner_info
     return bs58::encode(&account_keys[position as usize]).into_string();
+}
+
+fn validate_token_program_instruction(accounts: &Vec<Vec<u8>>, program_id_index: usize) -> bool {
+    let program_id = &accounts[program_id_index];
+    let account_id = bs58::encode(program_id).into_string();
+    return account_id == constants::TOKEN_PROGRAM;
+}
+
+fn valid_honey_token_transfer(pre_token_balances: &Vec<TokenBalance>, account: &String) -> bool {
+    substreams::log::info!("pre_token_balances: {:?}", pre_token_balances);
+    substreams::log::info!("account: {}", account);
+    for token_balance in pre_token_balances.iter() {
+        if token_balance.owner.eq(account) && token_balance.mint.eq(constants::HONEY_CONTRACT_ADDRESS) {
+            return true;
+        }
+    }
+    return false;
 }
 
 #[cfg(test)]

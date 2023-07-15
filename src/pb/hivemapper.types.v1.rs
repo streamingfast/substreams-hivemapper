@@ -13,7 +13,7 @@ pub struct Output {
     #[prost(message, repeated, tag="50")]
     pub ai_trainer_payments: ::prost::alloc::vec::Vec<AiTrainerPayment>,
     #[prost(message, repeated, tag="60")]
-    pub trans60ers: ::prost::alloc::vec::Vec<Transfer>,
+    pub transfers: ::prost::alloc::vec::Vec<Transfer>,
     #[prost(message, repeated, tag="70")]
     pub mints: ::prost::alloc::vec::Vec<Mint>,
     #[prost(message, repeated, tag="80")]

@@ -15,6 +15,7 @@ pub fn map_outputs(block: Block) -> Result<Output, Error> {
     for confirmed_trx in block.transactions().filter(|trx| trx.meta().is_some()) {
         if let Some(trx) = &confirmed_trx.transaction {
             let trx_hash = bs58::encode(&trx.signatures[0]).into_string();
+
             let msg = trx.message.as_ref().unwrap();
             let accounts = &msg.account_keys;
 

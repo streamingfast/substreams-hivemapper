@@ -10,7 +10,7 @@ message Output {
   repeated DriverFoundationPayment driver_foundation_payments = 40;
   repeated AiTrainerPayment ai_trainer_payments = 50;
 
-  repeated Transfer trans60ers = 60;
+  repeated Transfer transfers = 60;
   repeated Mint mints = 70;
   repeated Burn burns = 80;
   repeated TransferChecked transfer_checks = 90;
