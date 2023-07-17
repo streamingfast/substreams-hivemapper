@@ -7,6 +7,9 @@ package:
     These substream modules compose all the things to build up the Hivemapper substreams.
     See individual modules docs for help.
 
+imports:
+  address_lookup_tables: https://github.com/streamingfast/substreams-solana-address-lookup-table/releases/download/v0.1.0/address-lookup-table-v0.1.0.spkg
+
 protobuf:
   files:
     - hivemapper/v1/hivemapper.proto
@@ -24,5 +27,6 @@ modules:
     initialBlock: 158558168
     inputs:
       - source: sf.solana.type.v1.Block
+      - store: address_lookup_tables:store_address_lookup_tables_stage_2
     output:
       type: proto:hivemapper.types.v1.Output

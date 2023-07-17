@@ -13,9 +13,11 @@ message Output {
   repeated Transfer transfers = 60;
   repeated Mint mints = 70;
   repeated Burn burns = 80;
+
   repeated TransferChecked transfer_checks = 90;
   repeated MintToChecked mint_to_checks = 100;
   repeated BurnChecked burn_checks = 110;
+
   repeated InitializedAccount initialized_account = 120;
 }
 

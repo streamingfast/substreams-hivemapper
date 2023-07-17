@@ -9,9 +9,14 @@ use crate::pb::hivemapper::types::v1::{
     AiTrainerPayment, InitializedAccount, Mint, NoSplitPayment, Output, RegularDriverPayment, TokenSplittingPayment,
     Transfer as Tr, TransferChecked as TrChecked,
 };
+use prost_types::Any;
 use std::ops::Div;
-use substreams_solana::instruction::TokenInstruction;
-use substreams_solana::pb::sol::v1::{CompiledInstruction, InnerInstructions, TokenBalance, TransactionStatusMeta};
+use substreams::prelude::StoreGet;
+use substreams::store::StoreGetArray;
+use substreams_solana::pb::sf::solana::r#type::v1::{
+    CompiledInstruction, InnerInstruction, InnerInstructions, TokenBalance, TransactionStatusMeta,
+};
+use substreams_solana::token_instruction::TokenInstruction;
 
 pub fn process_compiled_instruction(
     output: &mut Output,
@@ -20,29 +25,29 @@ pub fn process_compiled_instruction(
     meta: &TransactionStatusMeta,
     inst_index: u32,
     inst: &CompiledInstruction,
-    accounts: &Vec<Vec<u8>>,
+    accounts: &Vec<String>,
 ) {
-    let instruction_program_account = bs58::encode(&accounts[inst.program_id_index as usize]).into_string();
+    let instruction_program_account = &accounts[inst.program_id_index as usize];
 
     if instruction_program_account == constants::HONEY_TOKEN_SPLITTING_INSTRUCTION_PROGRAM {
-        let token_account = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
+        let token_account = &accounts[inst.accounts[1] as usize];
         if token_account != constants::HONEY_CONTRACT_ADDRESS {
             return;
         }
 
         match inst.data[0] {
             constants::HONEY_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
-                let fleet_account = bs58::encode(&accounts[inst.accounts[4] as usize]).into_string();
-                let fleet_driver_account = bs58::encode(&accounts[inst.accounts[3] as usize]).into_string();
-                process_inner_instruction(
+                let fleet_account = &accounts[inst.accounts[4] as usize];
+                let fleet_driver_account = &accounts[inst.accounts[3] as usize];
+                process_inner_instructions(
                     output,
                     timestamp,
                     trx_hash,
                     HMContext {
                         instruction_index: inst_index,
                         r#type: Some(TokenSplittingFleet(context::TokenSplittingFleet {
-                            fleet_account,
-                            fleet_driver_account,
+                            fleet_account: fleet_account.to_owned(),
+                            fleet_driver_account: fleet_driver_account.to_owned(),
                         })),
                     },
                     accounts,
@@ -51,7 +56,7 @@ pub fn process_compiled_instruction(
             }
             constants::HONEY_REGULAR_DRIVER_INSTRUCTION_BYTE => {
                 let driver_account = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
-                process_inner_instruction(
+                process_inner_instructions(
                     output,
                     timestamp,
                     trx_hash,
@@ -65,7 +70,7 @@ pub fn process_compiled_instruction(
             }
             constants::HONEY_NO_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
                 let driver_account = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
-                process_inner_instruction(
+                process_inner_instructions(
                     output,
                     timestamp,
                     trx_hash,
@@ -77,10 +82,9 @@ pub fn process_compiled_instruction(
                     &meta.inner_instructions,
                 );
             }
-            _ => {
-                return;
-            }
+            _ => {}
         }
+        return;
     }
 
     if instruction_program_account == constants::HONEY_TOKEN_SPLITTING_CONTRACT {
@@ -91,7 +95,7 @@ pub fn process_compiled_instruction(
         match inst.data[0] {
             constants::HONEY_AI_TRAINER_INSTRUCTION_BYTE => {
                 let account = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
-                process_inner_instruction(
+                process_inner_instructions(
                     output,
                     timestamp,
                     trx_hash,
@@ -105,6 +109,7 @@ pub fn process_compiled_instruction(
             }
             _ => {}
         }
+        return;
     }
 
     // top level transaction without any inner instructions
@@ -142,12 +147,37 @@ pub fn process_compiled_instruction(
                     })
                 }
             }
+            // TODO: refactor this...
+            TokenInstruction::MintTo { amount: amt } => {
+                // todo
+            }
+            TokenInstruction::MintToChecked {
+                amount: amt,
+                decimals: _,
+            } => {
+                // todo
+            }
+            TokenInstruction::Burn { amount: amt } => {
+                // todo
+            }
+            TokenInstruction::BurnChecked {
+                amount: amt,
+                decimals: _,
+            } => {
+                // todo
+            }
+            TokenInstruction::InitializeAccount {} => {}
+            TokenInstruction::InitializeAccount2 { .. } => {}
+            TokenInstruction::InitializeAccount3 { .. } => {}
             _ => {}
         }
+        return;
     }
 
     if instruction_program_account == constants::ASSOCIATED_TOKEN_PROGRAM {
-        process_inner_instruction(
+        substreams::log::info!("associated token program");
+        substreams::log::info!("compiled instruction {:?}", inst);
+        process_inner_instructions(
             output,
             timestamp,
             trx_hash,
@@ -157,42 +187,43 @@ pub fn process_compiled_instruction(
             },
             accounts,
             &meta.inner_instructions,
-        )
+        );
+        return;
     }
 
     // transfers from inner instructions
-    // process_inner_instruction(
-    //     output,
-    //     timestamp,
-    //     trx_hash,
-    //     HMContext {
-    //         instruction_index: inst_index,
-    //         r#type: Some(Transfer(context::Transfer {})),
-    //     },
-    //     accounts,
-    //     &meta.inner_instructions,
-    // );
+    process_inner_instructions(
+        output,
+        timestamp,
+        trx_hash,
+        HMContext {
+            instruction_index: inst_index,
+            r#type: Some(Transfer(context::Transfer {})),
+        },
+        accounts,
+        &meta.inner_instructions,
+    );
 
     // transfer_checkeds from inner instructions
-    // process_inner_instruction(
-    //     output,
-    //     timestamp,
-    //     trx_hash,
-    //     HMContext {
-    //         instruction_index: inst_index,
-    //         r#type: Some(TransferChecked(context::TransferChecked {})),
-    //     },
-    //     accounts,
-    //     &meta.inner_instructions,
-    // );
+    process_inner_instructions(
+        output,
+        timestamp,
+        trx_hash,
+        HMContext {
+            instruction_index: inst_index,
+            r#type: Some(TransferChecked(context::TransferChecked {})),
+        },
+        accounts,
+        &meta.inner_instructions,
+    );
 }
 
-pub fn process_inner_instruction(
+pub fn process_inner_instructions(
     output: &mut Output,
     timestamp: i64,
     trx_hash: &String,
     context: HMContext,
-    accounts: &Vec<Vec<u8>>,
+    accounts: &Vec<String>,
     inner_instructions: &Vec<InnerInstructions>,
 ) {
     match context.r#type.as_ref().unwrap() {
@@ -373,23 +404,27 @@ pub fn process_inner_instruction(
                     inner_instruction
                         .instructions
                         .iter()
-                        .filter(|&inst| {
-                            substreams::log::info!("inst {:?}", inst);
-                            bs58::encode(&accounts[inst.program_id_index as usize]).into_string()
-                                == constants::TOKEN_PROGRAM
-                                && inst.accounts.len() == 2 // this seems to work for InitializeAccount3
-                                && bs58::encode(&accounts[inst.accounts[1] as usize]).into_string() == constants::HONEY_CONTRACT_ADDRESS
-                        })
+                        .filter(|&inst| accounts[inst.program_id_index as usize].eq(constants::TOKEN_PROGRAM))
                         .for_each(|inst| {
+                            substreams::log::info!("transaction hash: {}", trx_hash);
+                            substreams::log::info!("inst {:?}", inner_instruction);
                             let instruction = TokenInstruction::unpack(&inst.data).unwrap();
-                            let account = bs58::encode(&accounts[inst.accounts[0] as usize]).into_string();
-                            let mint = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
                             match instruction {
-                                TokenInstruction::InitializeAccount {} => {}
+                                TokenInstruction::InitializeAccount {} => {
+                                    // todo
+                                }
                                 TokenInstruction::InitializeAccount2 { owner: ow } => {
                                     // todo
                                 }
                                 TokenInstruction::InitializeAccount3 { owner: ow } => {
+                                    let mint = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
+
+                                    if mint != constants::HONEY_CONTRACT_ADDRESS {
+                                        return;
+                                    }
+
+                                    let account = bs58::encode(&accounts[inst.accounts[0] as usize]).into_string();
+                                    let instruction = TokenInstruction::unpack(&inst.data).unwrap();
                                     output.initialized_account.push(InitializedAccount {
                                         trx_hash: trx_hash.to_owned(),
                                         account,
@@ -397,7 +432,7 @@ pub fn process_inner_instruction(
                                         owner: bs58::encode(ow).into_string(),
                                     })
                                 }
-                                _ => {}
+                                _ => return,
                             }
                         })
                 });
@@ -410,15 +445,15 @@ fn amount_to_decimals(amount: f64, decimal: f64) -> f64 {
     return amount.div(&(base.powf(decimal)));
 }
 
-fn fetch_account_to(account_keys: &Vec<Vec<u8>>, position: u8) -> String {
+fn fetch_account_to(account_keys: &Vec<String>, position: u8) -> String {
     // Instruction account will contain the list of accounts to fetch in the accounts list
     // inst account pos 0 -> mint_info
     // inst account pos 1 -> destination_account_info
     // inst account pos 2 -> owner_info
-    return bs58::encode(&account_keys[position as usize]).into_string();
+    return account_keys[position as usize].to_owned();
 }
 
-fn validate_token_program_instruction(accounts: &Vec<Vec<u8>>, program_id_index: usize) -> bool {
+fn validate_token_program_instruction(accounts: &Vec<String>, program_id_index: usize) -> bool {
     let program_id = &accounts[program_id_index];
     let account_id = bs58::encode(program_id).into_string();
     return account_id == constants::TOKEN_PROGRAM;
