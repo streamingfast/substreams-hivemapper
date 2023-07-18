@@ -13,10 +13,10 @@ use prost_types::Any;
 use std::ops::Div;
 use substreams::prelude::StoreGet;
 use substreams::store::StoreGetArray;
+use substreams_solana::instruction::TokenInstruction;
 use substreams_solana::pb::sf::solana::r#type::v1::{
     CompiledInstruction, InnerInstruction, InnerInstructions, TokenBalance, TransactionStatusMeta,
 };
-use substreams_solana::token_instruction::TokenInstruction;
 
 pub fn process_compiled_instruction(
     output: &mut Output,
