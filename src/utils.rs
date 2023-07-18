@@ -175,8 +175,8 @@ pub fn process_compiled_instruction(
     }
 
     if instruction_program_account == constants::ASSOCIATED_TOKEN_PROGRAM {
-        substreams::log::info!("associated token program");
-        substreams::log::info!("compiled instruction {:?}", inst);
+        // substreams::log::info!("associated token program");
+        // substreams::log::info!("compiled instruction {:?}", inst);
         process_inner_instructions(
             output,
             timestamp,
@@ -239,35 +239,12 @@ pub fn process_inner_instructions(
                         .iter()
                         .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
                         .for_each(|inst| {
-                            let account_to = fetch_account_to(&accounts, inst.accounts[1]);
-                            let instruction = TokenInstruction::unpack(&inst.data).unwrap();
-                            match instruction {
-                                TokenInstruction::MintTo { amount } => {
-                                    if account_to == obj.fleet_account {
-                                        manager_mint = Some(Mint {
-                                            timestamp,
-                                            trx_hash: trx_hash.to_owned(),
-                                            to: account_to.clone(),
-                                            amount: amount_to_decimals(
-                                                amount as f64,
-                                                constants::HONEY_TOKEN_DECIMALS as f64,
-                                            ),
-                                        });
-                                    }
-
-                                    if account_to == obj.fleet_driver_account {
-                                        driver_mint = Some(Mint {
-                                            timestamp,
-                                            trx_hash: trx_hash.clone(),
-                                            to: account_to,
-                                            amount: amount_to_decimals(
-                                                amount as f64,
-                                                constants::HONEY_TOKEN_DECIMALS as f64,
-                                            ),
-                                        });
-                                    }
+                            if let Some(mint) = process_inner_instruction_mint(&trx_hash, timestamp, accounts, inst) {
+                                if mint.to.eq(&obj.fleet_account) {
+                                    manager_mint = Some(mint);
+                                } else if mint.to.eq(&obj.fleet_driver_account) {
+                                    driver_mint = Some(mint);
                                 }
-                                _ => {}
                             }
                         });
                 });
@@ -280,115 +257,48 @@ pub fn process_inner_instructions(
             }
         }
         RegularDriver(obj) => {
-            let mut driver_mint = None;
-            inner_instructions
-                .iter()
-                .filter(|&inner_instruction| inner_instruction.index == context.instruction_index)
-                .for_each(|inner_instruction| {
-                    inner_instruction
-                        .instructions
-                        .iter()
-                        .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
-                        .for_each(|inst| {
-                            let account_to = fetch_account_to(&accounts, inst.accounts[1]);
-                            let instruction = TokenInstruction::unpack(&inst.data).unwrap();
-                            match instruction {
-                                TokenInstruction::MintTo { amount } => {
-                                    if account_to == obj.driver_account {
-                                        driver_mint = Some(Mint {
-                                            trx_hash: trx_hash.to_owned(),
-                                            timestamp,
-                                            to: account_to,
-                                            amount: amount_to_decimals(
-                                                amount as f64,
-                                                constants::HONEY_TOKEN_DECIMALS as f64,
-                                            ),
-                                        });
-                                    }
-                                }
-                                _ => {}
-                            }
-                        });
-                });
-
-            if driver_mint.is_some() {
+            process_inner_instructions_mint(
+                context.instruction_index,
+                &obj.driver_account,
+                trx_hash,
+                timestamp,
+                inner_instructions,
+                accounts,
+            )
+            .into_iter()
+            .for_each(|mint| {
                 output
                     .regular_driver_payments
-                    .push(RegularDriverPayment { mint: driver_mint })
-            }
+                    .push(RegularDriverPayment { mint: Some(mint) });
+            });
         }
         NoTokenSplitting(obj) => {
-            let mut no_token_splitting_driver_mint = None;
-            inner_instructions
-                .iter()
-                .filter(|&inner_instruction| inner_instruction.index == context.instruction_index)
-                .for_each(|inner_instruction| {
-                    inner_instruction
-                        .instructions
-                        .iter()
-                        .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
-                        .for_each(|inst| {
-                            let account_to = fetch_account_to(&accounts, inst.accounts[1]);
-                            let instruction = TokenInstruction::unpack(&inst.data).unwrap();
-                            match instruction {
-                                TokenInstruction::MintTo { amount } => {
-                                    if account_to == obj.driver_account {
-                                        no_token_splitting_driver_mint = Some(Mint {
-                                            trx_hash: trx_hash.to_owned(),
-                                            timestamp,
-                                            to: account_to,
-                                            amount: amount_to_decimals(
-                                                amount as f64,
-                                                constants::HONEY_TOKEN_DECIMALS as f64,
-                                            ),
-                                        });
-                                    }
-                                }
-                                _ => {}
-                            }
-                        });
-                });
-
-            if no_token_splitting_driver_mint.is_some() {
-                output.no_split_payments.push(NoSplitPayment {
-                    mint: no_token_splitting_driver_mint,
-                })
-            }
+            process_inner_instructions_mint(
+                context.instruction_index,
+                &obj.driver_account,
+                trx_hash,
+                timestamp,
+                inner_instructions,
+                accounts,
+            )
+            .into_iter()
+            .for_each(|mint| {
+                output.ai_trainer_payments.push(AiTrainerPayment { mint: Some(mint) });
+            });
         }
         AiTrainerRewards(obj) => {
-            let mut payment_mint = None;
-            inner_instructions
-                .iter()
-                .filter(|&inner_instruction| inner_instruction.index == context.instruction_index)
-                .for_each(|inner_instruction| {
-                    inner_instruction
-                        .instructions
-                        .iter()
-                        .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
-                        .for_each(|inst| {
-                            let account_to = fetch_account_to(&accounts, inst.accounts[1]);
-                            let instruction = TokenInstruction::unpack(&inst.data).unwrap();
-                            match instruction {
-                                TokenInstruction::MintTo { amount } => {
-                                    if account_to == obj.account {
-                                        payment_mint = Some(Mint {
-                                            trx_hash: trx_hash.to_owned(),
-                                            timestamp,
-                                            to: account_to,
-                                            amount: amount_to_decimals(
-                                                amount as f64,
-                                                constants::HONEY_TOKEN_DECIMALS as f64,
-                                            ),
-                                        });
-                                    }
-                                }
-                                _ => {}
-                            }
-                        })
-                });
-            if payment_mint.is_some() {
-                output.ai_trainer_payments.push(AiTrainerPayment { mint: payment_mint })
-            }
+            process_inner_instructions_mint(
+                context.instruction_index,
+                &obj.account,
+                trx_hash,
+                timestamp,
+                inner_instructions,
+                accounts,
+            )
+            .into_iter()
+            .for_each(|mint| {
+                output.no_split_payments.push(NoSplitPayment { mint: Some(mint) });
+            });
         }
         Transfer(_) => {
             //todo
@@ -406,8 +316,8 @@ pub fn process_inner_instructions(
                         .iter()
                         .filter(|&inst| accounts[inst.program_id_index as usize].eq(constants::TOKEN_PROGRAM))
                         .for_each(|inst| {
-                            substreams::log::info!("transaction hash: {}", trx_hash);
-                            substreams::log::info!("inst {:?}", inner_instruction);
+                            // substreams::log::info!("transaction hash: {}", trx_hash);
+                            // substreams::log::info!("inst {:?}", inner_instruction);
                             let instruction = TokenInstruction::unpack(&inst.data).unwrap();
                             match instruction {
                                 TokenInstruction::InitializeAccount {} => {
@@ -440,6 +350,62 @@ pub fn process_inner_instructions(
     }
 }
 
+fn process_inner_instructions_mint(
+    context_instruction_index: u32,
+    context_account: &String,
+    trx_hash: &String,
+    timestamp: i64,
+    inner_instructions: &Vec<InnerInstructions>,
+    accounts: &Vec<String>,
+) -> Vec<Mint> {
+    let mut mints = vec![];
+    inner_instructions
+        .iter()
+        .filter(|&inner_instruction| inner_instruction.index == context_instruction_index)
+        .for_each(|inner_instruction| {
+            inner_instruction
+                .instructions
+                .iter()
+                .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
+                .for_each(|inst| {
+                    if let Some(mint) = process_inner_instruction_mint(&trx_hash, timestamp, accounts, inst) {
+                        if mint.to.eq(context_account) {
+                            mints.push(mint);
+                        }
+                    }
+                });
+        });
+    return mints;
+}
+
+fn process_inner_instruction_mint(
+    trx_hash: &String,
+    timestamp: i64,
+    accounts: &Vec<String>,
+    inst: &InnerInstruction,
+) -> Option<Mint> {
+    let account_to = fetch_account_to(&accounts, inst.accounts[1]);
+    let instruction = TokenInstruction::unpack(&inst.data).unwrap();
+    match instruction {
+        TokenInstruction::MintTo { amount: amt }
+        | TokenInstruction::MintToChecked {
+            amount: amt,
+            decimals: _,
+        } => {
+            return Some(Mint {
+                trx_hash: trx_hash.to_owned(),
+                timestamp,
+                to: account_to,
+                amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
+            });
+        }
+        _ => {}
+    }
+    return None;
+}
+
+fn process_inner_instruction_transfer() {}
+
 fn amount_to_decimals(amount: f64, decimal: f64) -> f64 {
     let base: f64 = 10.0;
     return amount.div(&(base.powf(decimal)));
@@ -454,9 +420,7 @@ fn fetch_account_to(account_keys: &Vec<String>, position: u8) -> String {
 }
 
 fn validate_token_program_instruction(accounts: &Vec<String>, program_id_index: usize) -> bool {
-    let program_id = &accounts[program_id_index];
-    let account_id = bs58::encode(program_id).into_string();
-    return account_id == constants::TOKEN_PROGRAM;
+    return &accounts[program_id_index] == constants::TOKEN_PROGRAM;
 }
 
 fn valid_honey_token_transfer(pre_token_balances: &Vec<TokenBalance>, account: &String) -> bool {
