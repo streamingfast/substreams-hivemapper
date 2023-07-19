@@ -14,10 +14,6 @@ message Output {
   repeated Mint mints = 70;
   repeated Burn burns = 80;
 
-  repeated TransferChecked transfer_checks = 90;
-  repeated MintToChecked mint_to_checks = 100;
-  repeated BurnChecked burn_checks = 110;
-
   repeated InitializedAccount initialized_account = 120;
 }
 
@@ -66,31 +62,6 @@ message Burn {
   int64 timestamp = 2;
   string from = 3;
   double amount = 5;
-}
-
-message TransferChecked {
-  string trx_hash = 1;
-  int64 timestamp = 2;
-  string from = 3;
-  string to = 4;
-  double amount = 5;
-  int32 decimals = 6;
-}
-
-message MintToChecked {
-  string trx_hash = 1;
-  int64 timestamp = 2;
-  string to = 4;
-  double amount = 5;
-  int32 decimals = 6;
-}
-
-message BurnChecked {
-  string trx_hash = 1;
-  int64 timestamp = 2;
-  string from = 3;
-  double amount = 5;
-  int32 decimals = 6;
 }
 
 message InitializedAccount {

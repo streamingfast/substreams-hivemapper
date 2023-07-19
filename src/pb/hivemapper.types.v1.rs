@@ -18,12 +18,6 @@ pub struct Output {
     pub mints: ::prost::alloc::vec::Vec<Mint>,
     #[prost(message, repeated, tag="80")]
     pub burns: ::prost::alloc::vec::Vec<Burn>,
-    #[prost(message, repeated, tag="90")]
-    pub transfer_checks: ::prost::alloc::vec::Vec<TransferChecked>,
-    #[prost(message, repeated, tag="100")]
-    pub mint_to_checks: ::prost::alloc::vec::Vec<MintToChecked>,
-    #[prost(message, repeated, tag="110")]
-    pub burn_checks: ::prost::alloc::vec::Vec<BurnChecked>,
     #[prost(message, repeated, tag="120")]
     pub initialized_account: ::prost::alloc::vec::Vec<InitializedAccount>,
 }
@@ -102,50 +96,6 @@ pub struct Burn {
     pub from: ::prost::alloc::string::String,
     #[prost(double, tag="5")]
     pub amount: f64,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TransferChecked {
-    #[prost(string, tag="1")]
-    pub trx_hash: ::prost::alloc::string::String,
-    #[prost(int64, tag="2")]
-    pub timestamp: i64,
-    #[prost(string, tag="3")]
-    pub from: ::prost::alloc::string::String,
-    #[prost(string, tag="4")]
-    pub to: ::prost::alloc::string::String,
-    #[prost(double, tag="5")]
-    pub amount: f64,
-    #[prost(int32, tag="6")]
-    pub decimals: i32,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct MintToChecked {
-    #[prost(string, tag="1")]
-    pub trx_hash: ::prost::alloc::string::String,
-    #[prost(int64, tag="2")]
-    pub timestamp: i64,
-    #[prost(string, tag="4")]
-    pub to: ::prost::alloc::string::String,
-    #[prost(double, tag="5")]
-    pub amount: f64,
-    #[prost(int32, tag="6")]
-    pub decimals: i32,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BurnChecked {
-    #[prost(string, tag="1")]
-    pub trx_hash: ::prost::alloc::string::String,
-    #[prost(int64, tag="2")]
-    pub timestamp: i64,
-    #[prost(string, tag="3")]
-    pub from: ::prost::alloc::string::String,
-    #[prost(double, tag="5")]
-    pub amount: f64,
-    #[prost(int32, tag="6")]
-    pub decimals: i32,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

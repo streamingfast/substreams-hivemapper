@@ -7,7 +7,7 @@ use crate::context::context::Type::{
 use crate::event::{Event, Type};
 use crate::pb::hivemapper::types::v1::{
     AiTrainerPayment, Burn, InitializedAccount, Mint, NoSplitPayment, Output, RegularDriverPayment,
-    TokenSplittingPayment, Transfer as Tr, TransferChecked as TrChecked,
+    TokenSplittingPayment, Transfer as Tr,
 };
 use crate::{constants, event};
 use std::ops::Div;
@@ -115,67 +115,67 @@ pub fn process_compiled_instruction(
     }
 
     // top level transaction without any inner instructions
-    if instruction_program_account == constants::TOKEN_PROGRAM {
-        // todo: move this in process_token_instruction()
-        let instruction = TokenInstruction::unpack(&inst.data).unwrap();
-        let source = bs58::encode(&accounts[inst.accounts[0] as usize]).into_string();
-        match instruction {
-            TokenInstruction::Transfer { amount: amt } => {
-                let authority = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
-                if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
-                    let destination = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
-                    output.transfers.push(Tr {
-                        trx_hash: trx_hash.to_owned(),
-                        timestamp,
-                        from: source.to_owned(),
-                        to: destination.to_owned(),
-                        amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
-                    });
-                }
-            }
-            TokenInstruction::TransferChecked {
-                amount: amt,
-                decimals: _,
-            } => {
-                let authority = bs58::encode(&accounts[inst.accounts[3] as usize]).into_string();
-                if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
-                    let destination = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
-                    output.transfer_checks.push(TrChecked {
-                        trx_hash: trx_hash.to_owned(),
-                        timestamp,
-                        from: source.to_owned(),
-                        to: destination.to_owned(),
-                        amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
-                        decimals: constants::HONEY_TOKEN_DECIMALS as i32,
-                    })
-                }
-            }
-            // TODO: refactor this...
-            TokenInstruction::MintTo { amount: amt } => {
-                // todo
-            }
-            TokenInstruction::MintToChecked {
-                amount: amt,
-                decimals: _,
-            } => {
-                // todo
-            }
-            TokenInstruction::Burn { amount: amt } => {
-                // todo
-            }
-            TokenInstruction::BurnChecked {
-                amount: amt,
-                decimals: _,
-            } => {
-                // todo
-            }
-            TokenInstruction::InitializeAccount {} => {}
-            TokenInstruction::InitializeAccount2 { .. } => {}
-            TokenInstruction::InitializeAccount3 { .. } => {}
-            _ => {}
-        }
-        return;
-    }
+    // if instruction_program_account == constants::TOKEN_PROGRAM {
+    //     // todo: move this in process_token_instruction()
+    //     let instruction = TokenInstruction::unpack(&inst.data).unwrap();
+    //     let source = bs58::encode(&accounts[inst.accounts[0] as usize]).into_string();
+    //     match instruction {
+    //         TokenInstruction::Transfer { amount: amt } => {
+    //             let authority = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
+    //             if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
+    //                 let destination = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
+    //                 output.transfers.push(Tr {
+    //                     trx_hash: trx_hash.to_owned(),
+    //                     timestamp,
+    //                     from: source.to_owned(),
+    //                     to: destination.to_owned(),
+    //                     amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
+    //                 });
+    //             }
+    //         }
+    //         TokenInstruction::TransferChecked {
+    //             amount: amt,
+    //             decimals: _,
+    //         } => {
+    //             let authority = bs58::encode(&accounts[inst.accounts[3] as usize]).into_string();
+    //             if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
+    //                 let destination = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
+    //                 output.transfer_checks.push(TrChecked {
+    //                     trx_hash: trx_hash.to_owned(),
+    //                     timestamp,
+    //                     from: source.to_owned(),
+    //                     to: destination.to_owned(),
+    //                     amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
+    //                     decimals: constants::HONEY_TOKEN_DECIMALS as i32,
+    //                 })
+    //             }
+    //         }
+    //         // TODO: refactor this...
+    //         TokenInstruction::MintTo { amount: amt } => {
+    //             // todo
+    //         }
+    //         TokenInstruction::MintToChecked {
+    //             amount: amt,
+    //             decimals: _,
+    //         } => {
+    //             // todo
+    //         }
+    //         TokenInstruction::Burn { amount: amt } => {
+    //             // todo
+    //         }
+    //         TokenInstruction::BurnChecked {
+    //             amount: amt,
+    //             decimals: _,
+    //         } => {
+    //             // todo
+    //         }
+    //         TokenInstruction::InitializeAccount {} => {}
+    //         TokenInstruction::InitializeAccount2 { .. } => {}
+    //         TokenInstruction::InitializeAccount3 { .. } => {}
+    //         _ => {}
+    //     }
+    //     return;
+    // }
 
     if instruction_program_account == constants::ASSOCIATED_TOKEN_PROGRAM {
         // substreams::log::info!("associated token program");
@@ -315,9 +315,28 @@ pub fn process_inner_instructions(
                 output.no_split_payments.push(NoSplitPayment { mint: Some(mint) });
             });
         }
-        Transfer(_) => {
-            //todo
-        }
+        Transfer(_) | TransferChecked(_) | InitializeAccount(_) => inner_instructions.into_iter().for_each(|inst| {
+            inner_instructions
+                .iter()
+                .filter(|&inner_instruction| inner_instruction.index == context.instruction_index)
+                .for_each(|inner_instruction| {
+                    inner_instruction
+                        .instructions
+                        .iter()
+                        .filter(|&inst| accounts[inst.program_id_index as usize].eq(constants::TOKEN_PROGRAM))
+                        .for_each(|inst| {
+                            if let Some(ev) = process_token_instruction(trx_hash, timestamp, inst, meta, accounts) {
+                                match ev.r#type {
+                                    Type::Transfer(transfer) => {}
+                                    Type::InitializeAccount(initialize_account) => {
+                                        output.initialized_account.push(initialize_account)
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        })
+                });
+        }),
         TransferChecked(_) => {
             //todo
         }
