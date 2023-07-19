@@ -7,7 +7,7 @@ message Output {
   repeated RegularDriverPayment regular_driver_payments = 20;
   repeated NoSplitPayment no_split_payments = 30;
 
-  repeated DriverFoundationPayment driver_foundation_payments = 40;
+  repeated Payment payments = 40;
   repeated AiTrainerPayment ai_trainer_payments = 50;
 
   repeated Transfer transfers = 60;
@@ -30,9 +30,6 @@ message NoSplitPayment {
   Mint mint = 1;
 }
 
-message DriverFoundationPayment {
-  Mint mint = 1;
-}
 
 message AiTrainerPayment {
   Mint mint = 1;
