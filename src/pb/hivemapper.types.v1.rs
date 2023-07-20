@@ -9,7 +9,7 @@ pub struct Output {
     #[prost(message, repeated, tag="30")]
     pub no_split_payments: ::prost::alloc::vec::Vec<NoSplitPayment>,
     #[prost(message, repeated, tag="40")]
-    pub driver_foundation_payments: ::prost::alloc::vec::Vec<DriverFoundationPayment>,
+    pub payments: ::prost::alloc::vec::Vec<Payment>,
     #[prost(message, repeated, tag="50")]
     pub ai_trainer_payments: ::prost::alloc::vec::Vec<AiTrainerPayment>,
     #[prost(message, repeated, tag="60")]
@@ -38,12 +38,6 @@ pub struct RegularDriverPayment {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoSplitPayment {
-    #[prost(message, optional, tag="1")]
-    pub mint: ::core::option::Option<Mint>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DriverFoundationPayment {
     #[prost(message, optional, tag="1")]
     pub mint: ::core::option::Option<Mint>,
 }
