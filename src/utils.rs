@@ -1,19 +1,16 @@
+use crate::constants;
 use crate::context::context;
 use crate::context::context::HMContext;
-use crate::context::context::Type::{
-    AiTrainerRewards, InitializeAccount, NoTokenSplitting, RegularDriver, TokenSplittingFleet, Transfer,
-    TransferChecked,
-};
+use crate::context::context::Type::{AiTrainerRewards, NoTokenSplitting, RegularDriver, TokenSplittingFleet};
 use crate::event::{Event, Type};
 use crate::pb::hivemapper::types::v1::{
     AiTrainerPayment, Burn, InitializedAccount, Mint, NoSplitPayment, Output, RegularDriverPayment,
     TokenSplittingPayment, Transfer as Tr,
 };
-use crate::{constants, event};
 use std::ops::Div;
 use substreams_solana::instruction::TokenInstruction;
 use substreams_solana::pb::sf::solana::r#type::v1::{
-    CompiledInstruction, InnerInstruction, InnerInstructions, TokenBalance, TransactionStatusMeta,
+    CompiledInstruction, InnerInstructions, TokenBalance, TransactionStatusMeta,
 };
 
 pub fn process_compiled_instruction(
@@ -115,113 +112,48 @@ pub fn process_compiled_instruction(
     }
 
     // top level transaction without any inner instructions
-    // if instruction_program_account == constants::TOKEN_PROGRAM {
-    //     // todo: move this in process_token_instruction()
-    //     let instruction = TokenInstruction::unpack(&inst.data).unwrap();
-    //     let source = bs58::encode(&accounts[inst.accounts[0] as usize]).into_string();
-    //     match instruction {
-    //         TokenInstruction::Transfer { amount: amt } => {
-    //             let authority = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
-    //             if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
-    //                 let destination = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
-    //                 output.transfers.push(Tr {
-    //                     trx_hash: trx_hash.to_owned(),
-    //                     timestamp,
-    //                     from: source.to_owned(),
-    //                     to: destination.to_owned(),
-    //                     amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
-    //                 });
-    //             }
-    //         }
-    //         TokenInstruction::TransferChecked {
-    //             amount: amt,
-    //             decimals: _,
-    //         } => {
-    //             let authority = bs58::encode(&accounts[inst.accounts[3] as usize]).into_string();
-    //             if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
-    //                 let destination = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
-    //                 output.transfer_checks.push(TrChecked {
-    //                     trx_hash: trx_hash.to_owned(),
-    //                     timestamp,
-    //                     from: source.to_owned(),
-    //                     to: destination.to_owned(),
-    //                     amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
-    //                     decimals: constants::HONEY_TOKEN_DECIMALS as i32,
-    //                 })
-    //             }
-    //         }
-    //         // TODO: refactor this...
-    //         TokenInstruction::MintTo { amount: amt } => {
-    //             // todo
-    //         }
-    //         TokenInstruction::MintToChecked {
-    //             amount: amt,
-    //             decimals: _,
-    //         } => {
-    //             // todo
-    //         }
-    //         TokenInstruction::Burn { amount: amt } => {
-    //             // todo
-    //         }
-    //         TokenInstruction::BurnChecked {
-    //             amount: amt,
-    //             decimals: _,
-    //         } => {
-    //             // todo
-    //         }
-    //         TokenInstruction::InitializeAccount {} => {}
-    //         TokenInstruction::InitializeAccount2 { .. } => {}
-    //         TokenInstruction::InitializeAccount3 { .. } => {}
-    //         _ => {}
-    //     }
-    //     return;
-    // }
+    if instruction_program_account == constants::TOKEN_PROGRAM {
+        if let Some(ev) = process_token_instruction(trx_hash, timestamp, &inst.data, &inst.accounts, meta, accounts) {
+            match ev.r#type {
+                Type::Mint(mint) => {
+                    output.mints.push(mint);
+                }
+                Type::Burn(burn) => {
+                    output.burns.push(burn);
+                }
+                Type::Transfer(transfer) => {
+                    output.transfers.push(transfer);
+                }
+                Type::InitializeAccount(initialize_account) => {
+                    output.initialized_account.push(initialize_account);
+                }
+            }
+        }
 
-    if instruction_program_account == constants::ASSOCIATED_TOKEN_PROGRAM {
-        // substreams::log::info!("associated token program");
-        // substreams::log::info!("compiled instruction {:?}", inst);
-        process_inner_instructions(
-            output,
-            timestamp,
-            trx_hash,
-            HMContext {
-                instruction_index: inst_index,
-                r#type: Some(InitializeAccount(context::InitializeAccount {})),
-            },
-            accounts,
-            &meta.inner_instructions,
-            meta,
-        );
         return;
     }
 
-    // transfers from inner instructions
-    process_inner_instructions(
-        output,
-        timestamp,
-        trx_hash,
-        HMContext {
-            instruction_index: inst_index,
-            r#type: Some(Transfer(context::Transfer {})),
-        },
-        accounts,
-        &meta.inner_instructions,
-        meta,
-    );
-
-    // transfer_checkeds from inner instructions
-    process_inner_instructions(
-        output,
-        timestamp,
-        trx_hash,
-        HMContext {
-            instruction_index: inst_index,
-            r#type: Some(TransferChecked(context::TransferChecked {})),
-        },
-        accounts,
-        &meta.inner_instructions,
-        meta,
-    );
+    meta.inner_instructions.iter().for_each(|inst| {
+        inst.instructions
+            .iter()
+            .filter(|inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
+            .for_each(|inst| {
+                if let Some(ev) =
+                    process_token_instruction(trx_hash, timestamp, &inst.data, &inst.accounts, meta, accounts)
+                {
+                    match ev.r#type {
+                        Type::Mint(mint) => output.mints.push(mint),
+                        Type::Burn(burn) => output.burns.push(burn),
+                        Type::Transfer(transfer) => {
+                            output.transfers.push(transfer);
+                        }
+                        Type::InitializeAccount(initialize_account) => {
+                            output.initialized_account.push(initialize_account);
+                        }
+                    }
+                }
+            })
+    });
 }
 
 pub fn process_inner_instructions(
@@ -246,7 +178,14 @@ pub fn process_inner_instructions(
                         .iter()
                         .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
                         .for_each(|inst| {
-                            if let Some(ev) = process_token_instruction(&trx_hash, timestamp, inst, meta, accounts) {
+                            if let Some(ev) = process_token_instruction(
+                                &trx_hash,
+                                timestamp,
+                                &inst.data,
+                                &inst.accounts,
+                                meta,
+                                accounts,
+                            ) {
                                 match ev.r#type {
                                     Type::Mint(mint) => {
                                         if mint.to.eq(&obj.fleet_account) {
@@ -315,166 +254,106 @@ pub fn process_inner_instructions(
                 output.no_split_payments.push(NoSplitPayment { mint: Some(mint) });
             });
         }
-        Transfer(_) | TransferChecked(_) | InitializeAccount(_) => inner_instructions.into_iter().for_each(|inst| {
-            inner_instructions
-                .iter()
-                .filter(|&inner_instruction| inner_instruction.index == context.instruction_index)
-                .for_each(|inner_instruction| {
-                    inner_instruction
-                        .instructions
-                        .iter()
-                        .filter(|&inst| accounts[inst.program_id_index as usize].eq(constants::TOKEN_PROGRAM))
-                        .for_each(|inst| {
-                            if let Some(ev) = process_token_instruction(trx_hash, timestamp, inst, meta, accounts) {
-                                match ev.r#type {
-                                    Type::Transfer(transfer) => {}
-                                    Type::InitializeAccount(initialize_account) => {
-                                        output.initialized_account.push(initialize_account)
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        })
-                });
-        }),
-        TransferChecked(_) => {
-            //todo
-        }
-        InitializeAccount(_) => {
-            inner_instructions
-                .iter()
-                .filter(|&inner_instruction| inner_instruction.index == context.instruction_index)
-                .for_each(|inner_instruction| {
-                    inner_instruction
-                        .instructions
-                        .iter()
-                        .filter(|&inst| accounts[inst.program_id_index as usize].eq(constants::TOKEN_PROGRAM))
-                        .for_each(|inst| {
-                            // substreams::log::info!("transaction hash: {}", trx_hash);
-                            // substreams::log::info!("inst {:?}", inner_instruction);
-                            let instruction = TokenInstruction::unpack(&inst.data).unwrap();
-                            match instruction {
-                                TokenInstruction::InitializeAccount {} => {
-                                    // todo
-                                }
-                                TokenInstruction::InitializeAccount2 { owner: ow } => {
-                                    // todo
-                                }
-                                TokenInstruction::InitializeAccount3 { owner: ow } => {
-                                    let mint = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
-
-                                    if mint != constants::HONEY_CONTRACT_ADDRESS {
-                                        return;
-                                    }
-
-                                    let account = bs58::encode(&accounts[inst.accounts[0] as usize]).into_string();
-                                    let instruction = TokenInstruction::unpack(&inst.data).unwrap();
-                                    output.initialized_account.push(InitializedAccount {
-                                        trx_hash: trx_hash.to_owned(),
-                                        account,
-                                        mint,
-                                        owner: bs58::encode(ow).into_string(),
-                                    })
-                                }
-                                _ => return,
-                            }
-                        })
-                });
-        }
     }
 }
 
 fn process_token_instruction(
     trx_hash: &String,
     timestamp: i64,
-    inst: &InnerInstruction,
+    data: &Vec<u8>,
+    inst_accounts: &Vec<u8>,
     meta: &TransactionStatusMeta,
     accounts: &Vec<String>,
 ) -> Option<Event> {
-    let instruction = TokenInstruction::unpack(&inst.data).unwrap();
-    match instruction {
-        TokenInstruction::Transfer { amount: amt } | TokenInstruction::TransferChecked { amount: amt, .. } => {
-            let authority = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
-            if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
-                let source = &accounts[inst.accounts[0] as usize];
-                let destination = &accounts[inst.accounts[1] as usize];
+    match TokenInstruction::unpack(&data) {
+        Err(err) => {
+            substreams::log::info!("unpacking token instruction {:?}", err);
+            panic!("{}", err)
+        }
+        Ok(instruction) => match instruction {
+            TokenInstruction::Transfer { amount: amt } | TokenInstruction::TransferChecked { amount: amt, .. } => {
+                let authority = bs58::encode(&accounts[inst_accounts[2] as usize]).into_string();
+                if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
+                    let source = &accounts[inst_accounts[0] as usize];
+                    let destination = &accounts[inst_accounts[1] as usize];
+                    return Some(Event {
+                        r#type: (Type::Transfer(Tr {
+                            trx_hash: trx_hash.to_owned(),
+                            timestamp,
+                            from: source.to_owned(),
+                            to: destination.to_owned(),
+                            amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
+                        })),
+                    });
+                }
+            }
+            TokenInstruction::MintTo { amount: amt } | TokenInstruction::MintToChecked { amount: amt, .. } => {
+                let mint = fetch_account_to(&accounts, inst_accounts[0]);
+                if mint.ne(&constants::HONEY_CONTRACT_ADDRESS) {
+                    return None;
+                }
+
+                let account_to = fetch_account_to(&accounts, inst_accounts[1]);
                 return Some(Event {
-                    r#type: (Type::Transfer(Tr {
+                    r#type: (Type::Mint(Mint {
                         trx_hash: trx_hash.to_owned(),
                         timestamp,
-                        from: source.to_owned(),
-                        to: destination.to_owned(),
+                        to: account_to,
                         amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
                     })),
                 });
             }
-        }
-        TokenInstruction::MintTo { amount: amt } | TokenInstruction::MintToChecked { amount: amt, .. } => {
-            let mint = fetch_account_to(&accounts, inst.accounts[0]);
-            if mint.ne(&constants::HONEY_CONTRACT_ADDRESS) {
-                return None;
-            }
+            TokenInstruction::Burn { amount: amt } | TokenInstruction::BurnChecked { amount: amt, .. } => {
+                let mint = fetch_account_to(&accounts, inst_accounts[1]);
+                if mint.ne(&constants::HONEY_CONTRACT_ADDRESS) {
+                    return None;
+                }
 
-            let account_to = fetch_account_to(&accounts, inst.accounts[1]);
-            return Some(Event {
-                r#type: (Type::Mint(Mint {
-                    trx_hash: trx_hash.to_owned(),
-                    timestamp,
-                    to: account_to,
-                    amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
-                })),
-            });
-        }
-        TokenInstruction::Burn { amount: amt } | TokenInstruction::BurnChecked { amount: amt, .. } => {
-            let mint = fetch_account_to(&accounts, inst.accounts[1]);
-            if mint.ne(&constants::HONEY_CONTRACT_ADDRESS) {
-                return None;
+                let account_from = fetch_account_to(&accounts, inst_accounts[0]);
+                return Some(Event {
+                    r#type: (Type::Burn(Burn {
+                        trx_hash: trx_hash.to_owned(),
+                        timestamp,
+                        from: account_from,
+                        amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
+                    })),
+                });
             }
+            TokenInstruction::InitializeAccount {} => {
+                let mint = fetch_account_to(&accounts, inst_accounts[1]);
+                if mint.ne(&constants::HONEY_CONTRACT_ADDRESS) {
+                    return None;
+                }
 
-            let account_from = fetch_account_to(&accounts, inst.accounts[0]);
-            return Some(Event {
-                r#type: (Type::Burn(Burn {
-                    trx_hash: trx_hash.to_owned(),
-                    timestamp,
-                    from: account_from,
-                    amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
-                })),
-            });
-        }
-        TokenInstruction::InitializeAccount {} => {
-            let mint = fetch_account_to(&accounts, inst.accounts[1]);
-            if mint.ne(&constants::HONEY_CONTRACT_ADDRESS) {
-                return None;
+                let account = fetch_account_to(&accounts, inst_accounts[0]);
+                let owner = fetch_account_to(&accounts, inst_accounts[2]);
+                return Some(Event {
+                    r#type: (Type::InitializeAccount(InitializedAccount {
+                        trx_hash: trx_hash.to_owned(),
+                        account,
+                        mint,
+                        owner,
+                    })),
+                });
             }
+            TokenInstruction::InitializeAccount2 { owner: ow } | TokenInstruction::InitializeAccount3 { owner: ow } => {
+                let mint = fetch_account_to(&accounts, inst_accounts[1]);
+                if mint.ne(&constants::HONEY_CONTRACT_ADDRESS) {
+                    return None;
+                }
 
-            let account = fetch_account_to(&accounts, inst.accounts[0]);
-            let owner = fetch_account_to(&accounts, inst.accounts[2]);
-            return Some(Event {
-                r#type: (Type::InitializeAccount(InitializedAccount {
-                    trx_hash: trx_hash.to_owned(),
-                    account,
-                    mint,
-                    owner,
-                })),
-            });
-        }
-        TokenInstruction::InitializeAccount2 { owner: ow } | TokenInstruction::InitializeAccount3 { owner: ow } => {
-            let mint = fetch_account_to(&accounts, inst.accounts[1]);
-            if mint.ne(&constants::HONEY_CONTRACT_ADDRESS) {
-                return None;
+                let account = fetch_account_to(&accounts, inst_accounts[0]);
+                return Some(Event {
+                    r#type: (Type::InitializeAccount(InitializedAccount {
+                        trx_hash: trx_hash.to_owned(),
+                        account,
+                        mint,
+                        owner: bs58::encode(ow).into_string(),
+                    })),
+                });
             }
-
-            let account = fetch_account_to(&accounts, inst.accounts[0]);
-            return Some(Event {
-                r#type: (Type::InitializeAccount(InitializedAccount {
-                    trx_hash: trx_hash.to_owned(),
-                    account,
-                    mint,
-                    owner: bs58::encode(ow).into_string(),
-                })),
-            });
-        }
-        _ => {}
+            _ => {}
+        },
     }
 
     return None;
@@ -499,7 +378,9 @@ fn process_inner_instructions_mint(
                 .iter()
                 .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
                 .for_each(|inst| {
-                    if let Some(ev) = process_token_instruction(&trx_hash, timestamp, inst, meta, accounts) {
+                    if let Some(ev) =
+                        process_token_instruction(&trx_hash, timestamp, &inst.data, &inst.accounts, meta, accounts)
+                    {
                         match ev.r#type {
                             Type::Mint(mint) => {
                                 if mint.to.eq(context_account) {
