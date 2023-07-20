@@ -24,7 +24,7 @@ binaries:
 modules:
   - name: map_outputs
     kind: map
-    initialBlock: 158558168
+    initialBlock: 154656000 #158558168
     inputs:
       - source: sf.solana.type.v1.Block
       - store: address_lookup_tables:store_address_lookup_tables_stage_2
