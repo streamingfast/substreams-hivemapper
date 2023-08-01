@@ -300,7 +300,7 @@ fn process_token_instruction(
     match TokenInstruction::unpack(&data) {
         Err(err) => {
             substreams::log::info!("unpacking token instruction {:?}", err);
-            return Err(Error::Unexpected(format!("unpacking token instruction: {}", err)));
+            return Err(anyhow::anyhow!("unpacking token instruction: {}", err));
         }
         Ok(instruction) => match instruction {
             TokenInstruction::Transfer { amount: amt } | TokenInstruction::TransferChecked { amount: amt, .. } => {
