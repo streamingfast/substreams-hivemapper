@@ -441,11 +441,9 @@ dependencies = [
 name = "substreams-hivemapper"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "bs58",
  "getrandom",
  "prost",
- "prost-build",
  "prost-types",
  "substreams",
  "substreams-solana",
@@ -468,6 +466,7 @@ dependencies = [
 [[package]]
 name = "substreams-solana"
 version = "0.10.1"
+source = "git+https://github.com/streamingfast/substreams-solana?branch=feature/owned#c45034276104862ecbaa7276609b9b4ad53f1ed9"
 dependencies = [
  "substreams",
  "substreams-solana-core",
@@ -477,6 +476,7 @@ dependencies = [
 [[package]]
 name = "substreams-solana-core"
 version = "0.10.1"
+source = "git+https://github.com/streamingfast/substreams-solana?branch=feature/owned#c45034276104862ecbaa7276609b9b4ad53f1ed9"
 dependencies = [
  "bs58",
  "prost",
@@ -487,6 +487,7 @@ dependencies = [
 [[package]]
 name = "substreams-solana-macro"
 version = "0.10.1"
+source = "git+https://github.com/streamingfast/substreams-solana?branch=feature/owned#c45034276104862ecbaa7276609b9b4ad53f1ed9"
 dependencies = [
  "bs58",
 ]

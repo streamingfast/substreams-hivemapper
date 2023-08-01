@@ -18,13 +18,8 @@ wasm-bindgen = "0.2.79"
 prost = "0.11.0"
 prost-types = "0.11.0"
 substreams = "^0.5.0"
-substreams-solana = {path = "../substreams-solana/substreams-solana"}
+substreams-solana = { git = "https://github.com/streamingfast/substreams-solana", branch = "feature/owned" }
 thiserror = "1.0.25"
-
-[build-dependencies]
-prost-build = "0.11.0"
-anyhow = "1"
-substreams-solana = {path = "../substreams-solana/substreams-solana"}
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.2", features = ["custom"] }
