@@ -21,3 +21,11 @@ stream_fleet_payments: build
 .PHONY: stream_regular_payments
 stream_regular_payments: build
 	substreams run substreams.yaml map_outputs -e mainnet.sol.streamingfast.io:443 -s 200974959 -t +1
+
+.PHONY: stream_ai_trainer_payments
+stream_ai_trainer_payments: build
+	substreams run substreams.yaml map_outputs -e mainnet.sol.streamingfast.io:443 -s 200975925 -t +1
+
+#.PHONE: stream_initialize_accounts
+#stream_initialize_accounts:build
+#	substreams run substreams.yaml map_outputs -e mainnet.sol.streamingfast.io:443 -s 200975925 -t +1

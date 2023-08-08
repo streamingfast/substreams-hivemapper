@@ -22,13 +22,13 @@ pub fn process_compiled_instruction(
     inst_index: u32,
     inst: &CompiledInstruction,
     accounts: &Vec<String>,
-) {
+) -> bool {
     let instruction_program_account = &accounts[inst.program_id_index as usize];
 
     if instruction_program_account == constants::HONEY_TOKEN_SPLITTING_INSTRUCTION_PROGRAM {
         let token_account = &accounts[inst.accounts[1] as usize];
         if token_account != constants::HONEY_CONTRACT_ADDRESS {
-            return;
+            panic!("token splitting contract does not involve HONEY token");
         }
 
         match inst.data[0] {
@@ -83,13 +83,13 @@ pub fn process_compiled_instruction(
             }
             _ => {}
         }
-        return;
+        return true;
     }
 
     if instruction_program_account == constants::HONEY_TOKEN_SPLITTING_CONTRACT {
         let token_account = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
         if token_account != constants::HONEY_CONTRACT_ADDRESS {
-            return;
+            panic!("token splitting contract does not involve HONEY token");
         }
         match inst.data[0] {
             constants::HONEY_AI_TRAINER_INSTRUCTION_BYTE => {
@@ -109,7 +109,7 @@ pub fn process_compiled_instruction(
             }
             _ => {}
         }
-        return;
+        return true;
     }
 
     // top level transaction without any inner instructions
@@ -141,44 +141,10 @@ pub fn process_compiled_instruction(
             }
         }
 
-        return;
+        return true;
     }
 
-    meta.inner_instructions.iter().for_each(|inst| {
-        inst.instructions
-            .iter()
-            .filter(|&inner_instruction| {
-                validate_token_program_instruction(accounts, inner_instruction.program_id_index as usize)
-            })
-            .for_each(|inner_instruction| {
-                match process_token_instruction(
-                    trx_hash,
-                    timestamp,
-                    &inner_instruction.data,
-                    &inner_instruction.accounts,
-                    meta,
-                    accounts,
-                ) {
-                    Err(err) => {
-                        panic!("trx_hash {} filtering inner instructions: {}", trx_hash, err)
-                    }
-                    Ok(ev_option) => {
-                        if let Some(ev) = ev_option {
-                            match ev.r#type {
-                                Type::Mint(mint) => output.mints.push(mint),
-                                Type::Burn(burn) => output.burns.push(burn),
-                                Type::Transfer(transfer) => {
-                                    output.transfers.push(transfer);
-                                }
-                                Type::InitializeAccount(initialize_account) => {
-                                    output.initialized_account.push(initialize_account);
-                                }
-                            }
-                        }
-                    }
-                }
-            })
-    });
+    return false;
 }
 
 pub fn process_inner_instructions(
@@ -287,6 +253,66 @@ pub fn process_inner_instructions(
             });
         }
     }
+}
+
+pub fn catch_remaining_instructions(
+    output: &mut Output,
+    meta: &TransactionStatusMeta,
+    accounts: &Vec<String>,
+    trx_hash: &String,
+    timestamp: i64,
+) {
+    meta.inner_instructions.iter().for_each(|inst| {
+        inst.instructions
+            .iter()
+            .filter(|&inner_instruction| {
+                validate_token_program_instruction(accounts, inner_instruction.program_id_index as usize)
+            })
+            .for_each(|inner_instruction| {
+                match process_token_instruction(
+                    trx_hash,
+                    timestamp,
+                    &inner_instruction.data,
+                    &inner_instruction.accounts,
+                    meta,
+                    accounts,
+                ) {
+                    Err(err) => {
+                        panic!("trx_hash {} filtering inner instructions: {}", trx_hash, err)
+                    }
+                    Ok(ev_option) => {
+                        if let Some(ev) = ev_option {
+                            match ev.r#type {
+                                Type::Mint(mint) => {
+                                    output.mints.push(mint)
+                                    // if !output.mints.contains(&mint) {
+                                    //     output.mints.push(mint)
+                                    // }
+                                }
+                                Type::Burn(burn) => {
+                                    output.burns.push(burn)
+                                    // if !output.burns.contains(&burn) {
+                                    //     output.burns.push(burn)
+                                    // }
+                                }
+                                Type::Transfer(transfer) => {
+                                    output.transfers.push(transfer);
+                                    // if !output.transfers.contains(&transfer) {
+                                    //     output.transfers.push(transfer);
+                                    // }
+                                }
+                                Type::InitializeAccount(initialize_account) => {
+                                    output.initialized_account.push(initialize_account);
+                                    // if !output.initialized_account.contains(&initialize_account) {
+                                    //     output.initialized_account.push(initialize_account);
+                                    // }
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+    });
 }
 
 fn process_token_instruction(

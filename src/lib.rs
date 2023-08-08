@@ -42,16 +42,28 @@ pub fn map_outputs(block: Block, address_lookup_table_store: StoreGetArray<Strin
             accounts.append(&mut writable_accounts);
             accounts.append(&mut readable_accounts);
 
+            let meta = confirmed_trx.meta.as_ref().unwrap();
+            let mut catch_all = false;
+
             for (i, compiled_instruction) in msg.instructions.iter().enumerate() {
-                utils::process_compiled_instruction(
+                let tmp_matched = utils::process_compiled_instruction(
                     &mut output,
                     timestamp,
                     &trx_hash,
-                    confirmed_trx.meta.as_ref().unwrap(),
+                    meta,
                     i as u32,
                     compiled_instruction,
                     &accounts,
-                )
+                );
+
+                if !tmp_matched {
+                    catch_all = true;
+                }
+            }
+
+            // TODO: move the catch all here and test it
+            if catch_all {
+                utils::catch_remaining_instructions(&mut output, meta, &accounts, &trx_hash, timestamp);
             }
         }
     }
