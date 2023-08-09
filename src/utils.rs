@@ -28,7 +28,7 @@ pub fn process_compiled_instruction(
     if instruction_program_account == constants::HONEY_TOKEN_SPLITTING_INSTRUCTION_PROGRAM {
         let token_account = &accounts[inst.accounts[1] as usize];
         if token_account != constants::HONEY_CONTRACT_ADDRESS {
-            panic!("token splitting contract does not involve HONEY token");
+            return true;
         }
 
         match inst.data[0] {
@@ -89,7 +89,7 @@ pub fn process_compiled_instruction(
     if instruction_program_account == constants::HONEY_TOKEN_SPLITTING_CONTRACT {
         let token_account = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
         if token_account != constants::HONEY_CONTRACT_ADDRESS {
-            panic!("token splitting contract does not involve HONEY token");
+            return true;
         }
         match inst.data[0] {
             constants::HONEY_AI_TRAINER_INSTRUCTION_BYTE => {
