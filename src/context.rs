@@ -32,5 +32,6 @@ pub mod context {
         RegularDriver(RegularDriver),
         NoTokenSplitting(NoTokenSplitting),
         AiTrainerRewards(AiTrainerRewards),
+        NoContext(),
     }
 }

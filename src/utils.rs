@@ -1,7 +1,9 @@
 use crate::constants;
 use crate::context::context;
 use crate::context::context::HMContext;
-use crate::context::context::Type::{AiTrainerRewards, NoTokenSplitting, RegularDriver, TokenSplittingFleet};
+use crate::context::context::Type::{
+    AiTrainerRewards, NoContext, NoTokenSplitting, RegularDriver, TokenSplittingFleet,
+};
 use crate::event::{Event, Type};
 use crate::pb::hivemapper::types::v1::{
     AiTrainerPayment, Burn, InitializedAccount, Mint, NoSplitPayment, Output, RegularDriverPayment,
@@ -22,13 +24,13 @@ pub fn process_compiled_instruction(
     inst_index: u32,
     inst: &CompiledInstruction,
     accounts: &Vec<String>,
-) -> bool {
+) {
     let instruction_program_account = &accounts[inst.program_id_index as usize];
 
     if instruction_program_account == constants::HONEY_TOKEN_SPLITTING_INSTRUCTION_PROGRAM {
         let token_account = &accounts[inst.accounts[1] as usize];
         if token_account != constants::HONEY_CONTRACT_ADDRESS {
-            return true;
+            return;
         }
 
         match inst.data[0] {
@@ -52,14 +54,16 @@ pub fn process_compiled_instruction(
                 );
             }
             constants::HONEY_REGULAR_DRIVER_INSTRUCTION_BYTE => {
-                let driver_account = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
+                let driver_account = &accounts[inst.accounts[2] as usize];
                 process_inner_instructions(
                     output,
                     timestamp,
                     trx_hash,
                     HMContext {
                         instruction_index: inst_index,
-                        r#type: Some(RegularDriver(context::RegularDriver { driver_account })),
+                        r#type: Some(RegularDriver(context::RegularDriver {
+                            driver_account: driver_account.to_owned(),
+                        })),
                     },
                     accounts,
                     &meta.inner_instructions,
@@ -67,14 +71,16 @@ pub fn process_compiled_instruction(
                 );
             }
             constants::HONEY_NO_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
-                let driver_account = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
+                let driver_account = &accounts[inst.accounts[2] as usize];
                 process_inner_instructions(
                     output,
                     timestamp,
                     trx_hash,
                     HMContext {
                         instruction_index: inst_index,
-                        r#type: Some(NoTokenSplitting(context::NoTokenSplitting { driver_account })),
+                        r#type: Some(NoTokenSplitting(context::NoTokenSplitting {
+                            driver_account: driver_account.to_owned(),
+                        })),
                     },
                     accounts,
                     &meta.inner_instructions,
@@ -83,24 +89,25 @@ pub fn process_compiled_instruction(
             }
             _ => {}
         }
-        return true;
     }
 
     if instruction_program_account == constants::HONEY_TOKEN_SPLITTING_CONTRACT {
-        let token_account = bs58::encode(&accounts[inst.accounts[1] as usize]).into_string();
+        let token_account = &accounts[inst.accounts[1] as usize];
         if token_account != constants::HONEY_CONTRACT_ADDRESS {
-            return true;
+            return;
         }
         match inst.data[0] {
             constants::HONEY_AI_TRAINER_INSTRUCTION_BYTE => {
-                let account = bs58::encode(&accounts[inst.accounts[2] as usize]).into_string();
+                let account = &accounts[inst.accounts[2] as usize];
                 process_inner_instructions(
                     output,
                     timestamp,
                     trx_hash,
                     HMContext {
                         instruction_index: inst_index,
-                        r#type: Some(AiTrainerRewards(context::AiTrainerRewards { account })),
+                        r#type: Some(AiTrainerRewards(context::AiTrainerRewards {
+                            account: account.to_owned(),
+                        })),
                     },
                     accounts,
                     &meta.inner_instructions,
@@ -109,7 +116,6 @@ pub fn process_compiled_instruction(
             }
             _ => {}
         }
-        return true;
     }
 
     // top level transaction without any inner instructions
@@ -140,11 +146,20 @@ pub fn process_compiled_instruction(
                 }
             }
         }
-
-        return true;
     }
 
-    return false;
+    process_inner_instructions(
+        output,
+        timestamp,
+        trx_hash,
+        HMContext {
+            instruction_index: inst_index,
+            r#type: Some(NoContext()),
+        },
+        accounts,
+        &meta.inner_instructions,
+        meta,
+    );
 }
 
 pub fn process_inner_instructions(
@@ -252,67 +267,65 @@ pub fn process_inner_instructions(
                 output.no_split_payments.push(NoSplitPayment { mint: Some(mint) });
             });
         }
+        NoContext() => {
+            process_no_context_inner_instructions(
+                output,
+                context.instruction_index,
+                meta,
+                &accounts,
+                &trx_hash,
+                timestamp,
+            );
+        }
     }
 }
 
-pub fn catch_remaining_instructions(
+pub fn process_no_context_inner_instructions(
     output: &mut Output,
+    instruction_index: u32,
     meta: &TransactionStatusMeta,
     accounts: &Vec<String>,
     trx_hash: &String,
     timestamp: i64,
 ) {
-    meta.inner_instructions.iter().for_each(|inst| {
-        inst.instructions
-            .iter()
-            .filter(|&inner_instruction| {
-                validate_token_program_instruction(accounts, inner_instruction.program_id_index as usize)
-            })
-            .for_each(|inner_instruction| {
-                match process_token_instruction(
-                    trx_hash,
-                    timestamp,
-                    &inner_instruction.data,
-                    &inner_instruction.accounts,
-                    meta,
-                    accounts,
-                ) {
-                    Err(err) => {
-                        panic!("trx_hash {} filtering inner instructions: {}", trx_hash, err)
-                    }
-                    Ok(ev_option) => {
-                        if let Some(ev) = ev_option {
-                            match ev.r#type {
-                                Type::Mint(mint) => {
-                                    output.mints.push(mint)
-                                    // if !output.mints.contains(&mint) {
-                                    //     output.mints.push(mint)
-                                    // }
-                                }
-                                Type::Burn(burn) => {
-                                    output.burns.push(burn)
-                                    // if !output.burns.contains(&burn) {
-                                    //     output.burns.push(burn)
-                                    // }
-                                }
-                                Type::Transfer(transfer) => {
-                                    output.transfers.push(transfer);
-                                    // if !output.transfers.contains(&transfer) {
-                                    //     output.transfers.push(transfer);
-                                    // }
-                                }
-                                Type::InitializeAccount(initialize_account) => {
-                                    output.initialized_account.push(initialize_account);
-                                    // if !output.initialized_account.contains(&initialize_account) {
-                                    //     output.initialized_account.push(initialize_account);
-                                    // }
+    meta.inner_instructions
+        .iter()
+        .filter(|inst| inst.index == instruction_index)
+        .for_each(|inst| {
+            inst.instructions
+                .iter()
+                .filter(|&inner_instruction| {
+                    validate_token_program_instruction(accounts, inner_instruction.program_id_index as usize)
+                })
+                .for_each(|inner_instruction| {
+                    match process_token_instruction(
+                        trx_hash,
+                        timestamp,
+                        &inner_instruction.data,
+                        &inner_instruction.accounts,
+                        meta,
+                        accounts,
+                    ) {
+                        Err(err) => {
+                            panic!("trx_hash {} filtering inner instructions: {}", trx_hash, err)
+                        }
+                        Ok(ev_option) => {
+                            if let Some(ev) = ev_option {
+                                match ev.r#type {
+                                    Type::Mint(mint) => output.mints.push(mint),
+                                    Type::Burn(burn) => output.burns.push(burn),
+                                    Type::Transfer(transfer) => {
+                                        output.transfers.push(transfer);
+                                    }
+                                    Type::InitializeAccount(initialize_account) => {
+                                        output.initialized_account.push(initialize_account);
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            })
-    });
+                })
+        });
 }
 
 fn process_token_instruction(
@@ -330,7 +343,7 @@ fn process_token_instruction(
         }
         Ok(instruction) => match instruction {
             TokenInstruction::Transfer { amount: amt } | TokenInstruction::TransferChecked { amount: amt, .. } => {
-                let authority = bs58::encode(&accounts[inst_accounts[2] as usize]).into_string();
+                let authority = &accounts[inst_accounts[2] as usize];
                 if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
                     let source = &accounts[inst_accounts[0] as usize];
                     let destination = &accounts[inst_accounts[1] as usize];
