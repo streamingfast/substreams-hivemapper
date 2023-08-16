@@ -89,6 +89,8 @@ pub fn process_compiled_instruction(
             }
             _ => {}
         }
+
+        return;
     }
 
     if instruction_program_account == constants::HONEY_TOKEN_SPLITTING_CONTRACT {
@@ -116,6 +118,8 @@ pub fn process_compiled_instruction(
             }
             _ => {}
         }
+
+        return;
     }
 
     // top level transaction without any inner instructions
@@ -146,6 +150,8 @@ pub fn process_compiled_instruction(
                 }
             }
         }
+
+        return;
     }
 
     process_inner_instructions(
