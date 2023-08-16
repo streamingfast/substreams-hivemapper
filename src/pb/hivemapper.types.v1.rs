@@ -8,8 +8,6 @@ pub struct Output {
     pub regular_driver_payments: ::prost::alloc::vec::Vec<RegularDriverPayment>,
     #[prost(message, repeated, tag="30")]
     pub no_split_payments: ::prost::alloc::vec::Vec<NoSplitPayment>,
-    #[prost(message, repeated, tag="40")]
-    pub payments: ::prost::alloc::vec::Vec<Payment>,
     #[prost(message, repeated, tag="50")]
     pub ai_trainer_payments: ::prost::alloc::vec::Vec<AiTrainerPayment>,
     #[prost(message, repeated, tag="60")]

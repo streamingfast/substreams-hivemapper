@@ -7,7 +7,6 @@ message Output {
   repeated RegularDriverPayment regular_driver_payments = 20;
   repeated NoSplitPayment no_split_payments = 30;
 
-  repeated Payment payments = 40;
   repeated AiTrainerPayment ai_trainer_payments = 50;
 
   repeated Transfer transfers = 60;
