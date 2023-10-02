@@ -29,7 +29,6 @@ message NoSplitPayment {
   Mint mint = 1;
 }
 
-
 message AiTrainerPayment {
   Mint mint = 1;
 }
