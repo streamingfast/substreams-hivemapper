@@ -8,6 +8,7 @@ use crate::pb::hivemapper::types::v1::Output;
 use substreams::errors::Error;
 use substreams_solana::pb::sf::solana::r#type::v1::Block;
 
+
 #[substreams::handlers::map]
 pub fn map_outputs(block: Block) -> Result<Output, Error> {
     let mut output = Output::default();

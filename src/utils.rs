@@ -11,9 +11,13 @@ use crate::pb::hivemapper::types::v1::{
 };
 use std::ops::Div;
 use substreams::errors::Error;
-use substreams_solana::instruction::TokenInstruction;
+
 use substreams_solana::pb::sf::solana::r#type::v1::{
     CompiledInstruction, InnerInstructions, TokenBalance, TransactionStatusMeta,
+};
+
+use substreams_solana_program_instructions::{
+    token_instruction_2022::TokenInstruction
 };
 
 pub fn process_compiled_instruction(
