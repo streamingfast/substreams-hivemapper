@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: hivemapper
-  version: v0.1.5
+  version: v0.1.6
   url: https://github.com/streamingfast/substreams-hivemapper
   doc: |
     These substream modules compose all the things to build up the Hivemapper substreams.
@@ -21,7 +21,7 @@ binaries:
 modules:
   - name: map_outputs
     kind: map
-    initialBlock: 154656000 #158558168
+    initialBlock: 158558168
     inputs:
       - source: sf.solana.type.v1.Block
     output:
