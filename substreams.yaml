@@ -1,11 +1,13 @@
 specVersion: v0.1.0
 package:
   name: hivemapper
-  version: v0.1.6
+  version: v0.1.7
   url: https://github.com/streamingfast/substreams-hivemapper
   doc: |
     These substream modules compose all the things to build up the Hivemapper substreams.
     See individual modules docs for help.
+
+network: solana
 
 protobuf:
   files:
