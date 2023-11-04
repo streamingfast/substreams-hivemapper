@@ -19,7 +19,7 @@ bs58 = "0.4.0"
 prost = "0.11"
 prost-types = "0.11"
 substreams = "^0.5.0"
-substreams-solana = "0.11"
+substreams-solana = { git = "https://github.com/streamingfast/substreams-solana", branch = "master" }
 substreams-solana-program-instructions = "0.1"
 thiserror = "1.0.25"
 anyhow = "1.0.72"
@@ -27,6 +27,3 @@ anyhow = "1.0.72"
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.2", features = ["custom"] }
-
-[patch.crates-io]
-substreams-solana = { path = "/Users/eduardvoiculescu/git/streamingFast/substreams-solana/substreams-solana" }

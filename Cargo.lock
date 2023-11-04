@@ -465,6 +465,7 @@ dependencies = [
 [[package]]
 name = "substreams-solana"
 version = "0.11.1"
+source = "git+https://github.com/streamingfast/substreams-solana?branch=master#1f66cc3081f61ad1189dc814cb82096ae5ac4b3b"
 dependencies = [
  "anyhow",
  "num_enum",
@@ -476,6 +477,7 @@ dependencies = [
 [[package]]
 name = "substreams-solana-core"
 version = "0.11.1"
+source = "git+https://github.com/streamingfast/substreams-solana?branch=master#1f66cc3081f61ad1189dc814cb82096ae5ac4b3b"
 dependencies = [
  "bs58",
  "prost",
@@ -486,6 +488,7 @@ dependencies = [
 [[package]]
 name = "substreams-solana-macro"
 version = "0.11.1"
+source = "git+https://github.com/streamingfast/substreams-solana?branch=master#1f66cc3081f61ad1189dc814cb82096ae5ac4b3b"
 dependencies = [
  "bs58",
 ]
