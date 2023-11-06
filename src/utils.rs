@@ -127,7 +127,8 @@ pub fn process_compiled_instruction(
     }
 
     // top level transaction without any inner instructions
-    if validate_token_program_instruction(accounts, inst.program_id_index as usize) {
+    if is_token_program_instruction(accounts, inst.program_id_index as usize) {
+        substreams::log::println("is_token_program_instruction");
         match process_token_instruction(trx_hash, timestamp, &inst.data, &inst.accounts, meta, accounts) {
             Err(err) => {
                 panic!(
@@ -192,7 +193,7 @@ pub fn process_inner_instructions(
                     inner_instruction
                         .instructions
                         .iter()
-                        .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
+                        .filter(|&inst| is_token_program_instruction(accounts, inst.program_id_index as usize))
                         .for_each(|inst| {
                             match process_token_instruction(
                                 &trx_hash,
@@ -305,7 +306,7 @@ pub fn process_no_context_inner_instructions(
             inst.instructions
                 .iter()
                 .filter(|&inner_instruction| {
-                    validate_token_program_instruction(accounts, inner_instruction.program_id_index as usize)
+                    is_token_program_instruction(accounts, inner_instruction.program_id_index as usize)
                 })
                 .for_each(|inner_instruction| {
                     match process_token_instruction(
@@ -352,11 +353,28 @@ fn process_token_instruction(
             return Err(anyhow::anyhow!("unpacking token instruction: {}", err));
         }
         Ok(instruction) => match instruction {
-            TokenInstruction::Transfer { amount: amt } | TokenInstruction::TransferChecked { amount: amt, .. } => {
+            TokenInstruction::Transfer { amount: amt }  => {
                 let authority = &accounts[inst_accounts[2] as usize];
-                if valid_honey_token_transfer(&meta.pre_token_balances, &authority) {
+                if is_honey_token_transfer(&meta.pre_token_balances, &authority) {
                     let source = &accounts[inst_accounts[0] as usize];
                     let destination = &accounts[inst_accounts[1] as usize];
+                    return Ok(Some(Event {
+                        r#type: (Type::Transfer(Tr {
+                            trx_hash: trx_hash.to_owned(),
+                            timestamp,
+                            from: source.to_owned(),
+                            to: destination.to_owned(),
+                            amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
+                        })),
+                    }));
+                }
+            }
+             TokenInstruction::TransferChecked { amount: amt, .. } => {
+                substreams::log::println("transfer");
+                let mint = &accounts[inst_accounts[1] as usize];
+                if is_honey_token(mint) {
+                    let source = &accounts[inst_accounts[0] as usize];
+                    let destination = &accounts[inst_accounts[2] as usize];
                     return Ok(Some(Event {
                         r#type: (Type::Transfer(Tr {
                             trx_hash: trx_hash.to_owned(),
@@ -457,7 +475,7 @@ fn process_inner_instructions_mint(
             inner_instruction
                 .instructions
                 .iter()
-                .filter(|&inst| validate_token_program_instruction(accounts, inst.program_id_index as usize))
+                .filter(|&inst| is_token_program_instruction(accounts, inst.program_id_index as usize))
                 .for_each(|inst| {
                     match process_token_instruction(&trx_hash, timestamp, &inst.data, &inst.accounts, meta, accounts) {
                         Err(err) => {
@@ -494,11 +512,15 @@ fn fetch_account_to(account_keys: &Vec<String>, position: u8) -> String {
     return account_keys[position as usize].to_owned();
 }
 
-fn validate_token_program_instruction(accounts: &Vec<String>, program_id_index: usize) -> bool {
+fn is_token_program_instruction(accounts: &Vec<String>, program_id_index: usize) -> bool {
     return &accounts[program_id_index] == constants::TOKEN_PROGRAM;
 }
 
-fn valid_honey_token_transfer(pre_token_balances: &Vec<TokenBalance>, account: &String) -> bool {
+fn is_honey_token(account: &String) -> bool{
+    return account.eq(constants::HONEY_CONTRACT_ADDRESS)
+}
+
+fn is_honey_token_transfer(pre_token_balances: &Vec<TokenBalance>, account: &String) -> bool {
     for token_balance in pre_token_balances.iter() {
         if token_balance.owner.eq(account) && token_balance.mint.eq(constants::HONEY_CONTRACT_ADDRESS) {
             return true;
