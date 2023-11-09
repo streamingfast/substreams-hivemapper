@@ -16,9 +16,7 @@ use substreams_solana::pb::sf::solana::r#type::v1::{
     CompiledInstruction, InnerInstructions, TokenBalance, TransactionStatusMeta,
 };
 
-use substreams_solana_program_instructions::{
-    token_instruction_2022::TokenInstruction
-};
+use substreams_solana_program_instructions::token_instruction_2022::TokenInstruction;
 
 pub fn process_compiled_instruction(
     output: &mut Output,
@@ -56,6 +54,8 @@ pub fn process_compiled_instruction(
                     &meta.inner_instructions,
                     meta,
                 );
+
+                return;
             }
             constants::HONEY_REGULAR_DRIVER_INSTRUCTION_BYTE => {
                 let driver_account = &accounts[inst.accounts[2] as usize];
@@ -73,6 +73,8 @@ pub fn process_compiled_instruction(
                     &meta.inner_instructions,
                     meta,
                 );
+
+                return;
             }
             constants::HONEY_NO_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
                 let driver_account = &accounts[inst.accounts[2] as usize];
@@ -90,11 +92,11 @@ pub fn process_compiled_instruction(
                     &meta.inner_instructions,
                     meta,
                 );
+
+                return;
             }
             _ => {}
         }
-
-        return;
     }
 
     if instruction_program_account == constants::HONEY_TOKEN_SPLITTING_CONTRACT {
@@ -353,7 +355,7 @@ fn process_token_instruction(
             return Err(anyhow::anyhow!("unpacking token instruction: {}", err));
         }
         Ok(instruction) => match instruction {
-            TokenInstruction::Transfer { amount: amt }  => {
+            TokenInstruction::Transfer { amount: amt } => {
                 let authority = &accounts[inst_accounts[2] as usize];
                 if is_honey_token_transfer(&meta.pre_token_balances, &authority) {
                     let source = &accounts[inst_accounts[0] as usize];
@@ -369,7 +371,7 @@ fn process_token_instruction(
                     }));
                 }
             }
-             TokenInstruction::TransferChecked { amount: amt, .. } => {
+            TokenInstruction::TransferChecked { amount: amt, .. } => {
                 substreams::log::println("transfer");
                 let mint = &accounts[inst_accounts[1] as usize];
                 if is_honey_token(mint) {
@@ -516,8 +518,8 @@ fn is_token_program_instruction(accounts: &Vec<String>, program_id_index: usize)
     return &accounts[program_id_index] == constants::TOKEN_PROGRAM;
 }
 
-fn is_honey_token(account: &String) -> bool{
-    return account.eq(constants::HONEY_CONTRACT_ADDRESS)
+fn is_honey_token(account: &String) -> bool {
+    return account.eq(constants::HONEY_CONTRACT_ADDRESS);
 }
 
 fn is_honey_token_transfer(pre_token_balances: &Vec<TokenBalance>, account: &String) -> bool {
