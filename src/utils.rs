@@ -16,6 +16,7 @@ use substreams_solana::pb::sf::solana::r#type::v1::{
     CompiledInstruction, InnerInstructions, TokenBalance, TransactionStatusMeta,
 };
 
+use substreams::log;
 use substreams_solana_program_instructions::token_instruction_2022::TokenInstruction;
 
 pub fn process_compiled_instruction(
@@ -93,7 +94,7 @@ pub fn process_compiled_instruction(
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_MINT => {}
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT => {}
             _ => {
-                panic!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match {}", trx_hash);
+                log::info!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match trx_hash: {} inst.data: {}", trx_hash, inst.data[0]);
             }
         }
     }
@@ -120,7 +121,7 @@ pub fn process_compiled_instruction(
                 return;
             }
             _ => {
-                panic!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match {}", trx_hash);
+                log::info!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match trx_hash: {} inst.data: {}", trx_hash, inst.data[0]);            
             }
         }
     }
