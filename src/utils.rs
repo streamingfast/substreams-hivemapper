@@ -91,8 +91,9 @@ pub fn process_compiled_instruction(
                 return;
             }
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_MINT => {}
+            constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT => {}
             _ => {
-                panic!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match");
+                panic!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match {}", trx_hash);
             }
         }
     }
@@ -119,7 +120,7 @@ pub fn process_compiled_instruction(
                 return;
             }
             _ => {
-                panic!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match");
+                panic!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match {}", trx_hash);
             }
         }
     }
