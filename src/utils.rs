@@ -95,7 +95,9 @@ pub fn process_compiled_instruction(
 
                 return;
             }
-            _ => {}
+            _ => {
+                panic!("instruction program account HONEY_TOKEN_SPLITTING_INSTRUCTION_PROGRAM but found no match");
+            }
         }
     }
 
@@ -121,16 +123,17 @@ pub fn process_compiled_instruction(
                     &meta.inner_instructions,
                     meta,
                 );
-            }
-            _ => {}
-        }
 
-        return;
+                return;
+            }
+            _ => {
+                panic!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match");
+            }
+        }
     }
 
     // top level transaction without any inner instructions
     if is_token_program_instruction(accounts, inst.program_id_index as usize) {
-        substreams::log::println("is_token_program_instruction");
         match process_token_instruction(trx_hash, timestamp, &inst.data, &inst.accounts, meta, accounts) {
             Err(err) => {
                 panic!(
@@ -372,7 +375,6 @@ fn process_token_instruction(
                 }
             }
             TokenInstruction::TransferChecked { amount: amt, .. } => {
-                substreams::log::println("transfer");
                 let mint = &accounts[inst_accounts[1] as usize];
                 if is_honey_token(mint) {
                     let source = &accounts[inst_accounts[0] as usize];
