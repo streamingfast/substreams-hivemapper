@@ -95,6 +95,9 @@ pub fn process_compiled_instruction(
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_2 => {}
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_3 => {}
             _ => {
+                if constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_IGNORE_LIST.contains(&inst.data[0]) {
+                    return;
+                }
                 panic!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match trx_hash: {} inst.data: {}", trx_hash, inst.data[0]);
             }
         }
