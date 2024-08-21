@@ -1,6 +1,8 @@
 pub const TOKEN_PROGRAM: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 pub const HONEY_CONTRACT_ADDRESS: &str = "4vMsoUT2BWatFweudnQM1xedRLfJgJ7hswhcpz4xgBTy";
+
 pub const HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB: &str = "EEjwuvCMVYjgHUeX1BM9qmUog59Pft88c3jbt2ATwcJw";
+pub const HONEY_TOKEN_INSTRUCTION_PROGRAM_LIBCREATE_ACCOUNT: u8 = 232; // 0xe8
 
 // Program
 pub const HONEY_TOKEN_INSTRUCTION_PROGRAM: &str = "BNH1dUp3ExFbgo3YctSqQbJXRFn3ffkwbcmSas8azfaW";

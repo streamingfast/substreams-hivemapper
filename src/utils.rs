@@ -123,6 +123,7 @@ pub fn process_compiled_instruction(
 
                 return;
             }
+            constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIBCREATE_ACCOUNT => {}
             _ => {
                 panic!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match trx_hash: {} inst.data: {}", trx_hash, inst.data[0]);
             }
