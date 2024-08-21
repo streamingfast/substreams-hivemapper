@@ -25,7 +25,7 @@ binaries:
 modules:
   - name: map_outputs
     kind: map
-    initialBlock: 160259890 # 158569787
+    initialBlock: 160259976 # 158569787
     inputs:
       - source: sf.solana.type.v1.Block
     output:
