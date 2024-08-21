@@ -91,11 +91,9 @@ pub fn process_compiled_instruction(
 
                 return;
             }
-            constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_MINT => {
-                panic!("trx_hash {} found mint instruction", trx_hash);
-            }
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT => {}
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_2 => {}
+            constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_3 => {}
             _ => {
                 panic!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match trx_hash: {} inst.data: {}", trx_hash, inst.data[0]);
             }
