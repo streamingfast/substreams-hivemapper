@@ -10,7 +10,6 @@ pub struct Output {
     pub no_split_payments: ::prost::alloc::vec::Vec<NoSplitPayment>,
     #[prost(message, repeated, tag="50")]
     pub ai_trainer_payments: ::prost::alloc::vec::Vec<AiTrainerPayment>,
-    ///   repeated HoneyOutput honey_output = 1;
     #[prost(message, repeated, tag="60")]
     pub transfers: ::prost::alloc::vec::Vec<Transfer>,
     #[prost(message, repeated, tag="70")]
@@ -20,11 +19,6 @@ pub struct Output {
     #[prost(message, repeated, tag="120")]
     pub initialized_account: ::prost::alloc::vec::Vec<InitializedAccount>,
 }
-// message HoneyOutput {
-//   string type = 1;
-//   repeated Mint mint = 2;
-// }
-
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TokenSplittingPayment {

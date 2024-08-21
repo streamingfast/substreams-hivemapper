@@ -9,7 +9,6 @@ message Output {
 
   repeated AiTrainerPayment ai_trainer_payments = 50;
 
-//  repeated HoneyOutput honey_output = 1;
   repeated Transfer transfers = 60;
   repeated Mint mints = 70;
   repeated Burn burns = 80;
@@ -17,31 +16,18 @@ message Output {
   repeated InitializedAccount initialized_account = 120;
 }
 
-//message HoneyOutput {
-//  string type = 1;
-//  repeated Mint mint = 2;
-//}
-
 message TokenSplittingPayment {
   Mint manager_mint = 1;
   Mint driver_mint = 2;
 }
 
-message RegularDriverPayment {
-  Mint mint = 1;
-}
+message RegularDriverPayment { Mint mint = 1; }
 
-message NoSplitPayment {
-  Mint mint = 1;
-}
+message NoSplitPayment { Mint mint = 1; }
 
-message AiTrainerPayment {
-  Mint mint = 1;
-}
+message AiTrainerPayment { Mint mint = 1; }
 
-message Payment {
-  Mint mint = 1;
-}
+message Payment { Mint mint = 1; }
 
 message Transfer {
   string trx_hash = 1;
