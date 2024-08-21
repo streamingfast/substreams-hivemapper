@@ -8,11 +8,12 @@ package:
     These substream modules compose all the things to build up the Hivemapper substreams.
     See individual modules docs for help.
 
-network: solana
-
 protobuf:
   files:
     - hivemapper/v1/hivemapper.proto
+  excludePaths:
+    - sf/substreams
+    - google
   importPaths:
     - ./proto
 
@@ -24,8 +25,10 @@ binaries:
 modules:
   - name: map_outputs
     kind: map
-    initialBlock: 158558168
+    initialBlock: 158569787
     inputs:
       - source: sf.solana.type.v1.Block
     output:
       type: proto:hivemapper.types.v1.Output
+
+network: solana

@@ -91,10 +91,12 @@ pub fn process_compiled_instruction(
 
                 return;
             }
-            constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_MINT => {}
+            constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_MINT => {
+                panic!("trx_hash {} found mint instruction", trx_hash);
+            }
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT => {}
             _ => {
-                log::info!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match trx_hash: {} inst.data: {}", trx_hash, inst.data[0]);
+                panic!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match trx_hash: {} inst.data: {}", trx_hash, inst.data[0]);
             }
         }
     }
@@ -121,7 +123,7 @@ pub fn process_compiled_instruction(
                 return;
             }
             _ => {
-                log::info!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match trx_hash: {} inst.data: {}", trx_hash, inst.data[0]);            
+                panic!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match trx_hash: {} inst.data: {}", trx_hash, inst.data[0]);
             }
         }
     }
