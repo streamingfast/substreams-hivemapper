@@ -54,7 +54,6 @@ pub fn process_compiled_instruction(
                 return;
             }
             constants::HONEY_REGULAR_DRIVER_INSTRUCTION_BYTE => {
-                let driver_account = &accounts[inst.accounts[2] as usize];
                 process_inner_instructions(
                     output,
                     timestamp,
@@ -62,7 +61,6 @@ pub fn process_compiled_instruction(
                     HMContext {
                         instruction_index: inst_index,
                         r#type: Some(RegularDriver(context::RegularDriver {
-                            driver_account: driver_account.to_owned(),
                         })),
                     },
                     accounts,
@@ -73,7 +71,6 @@ pub fn process_compiled_instruction(
                 return;
             }
             constants::HONEY_NO_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
-                let driver_account = &accounts[inst.accounts[2] as usize];
                 process_inner_instructions(
                     output,
                     timestamp,
@@ -81,7 +78,6 @@ pub fn process_compiled_instruction(
                     HMContext {
                         instruction_index: inst_index,
                         r#type: Some(NoTokenSplitting(context::NoTokenSplitting {
-                            driver_account: driver_account.to_owned(),
                         })),
                     },
                     accounts,
@@ -90,6 +86,23 @@ pub fn process_compiled_instruction(
                 );
 
                 return;
+            }
+            constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_IMAGERY_QA_INVOICE => {
+                process_inner_instructions(
+                    output,
+                    timestamp,
+                    trx_hash,
+                    HMContext {
+                        instruction_index: inst_index,
+                        r#type: Some(AiTrainerRewards(context::AiTrainerRewards {})),
+                    },
+                    accounts,
+                    &meta.inner_instructions,
+                    meta,
+                );
+
+                return;
+
             }
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT => {}
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_2 => {}
@@ -115,7 +128,6 @@ pub fn process_compiled_instruction(
                     HMContext {
                         instruction_index: inst_index,
                         r#type: Some(AiTrainerRewards(context::AiTrainerRewards {
-                            account: account.to_owned(),
                         })),
                     },
                     accounts,
@@ -239,7 +251,6 @@ pub fn process_inner_instructions(
         RegularDriver(obj) => {
             process_inner_instructions_mint(
                 context.instruction_index,
-                &obj.driver_account,
                 trx_hash,
                 timestamp,
                 inner_instructions,
@@ -256,22 +267,6 @@ pub fn process_inner_instructions(
         NoTokenSplitting(obj) => {
             process_inner_instructions_mint(
                 context.instruction_index,
-                &obj.driver_account,
-                trx_hash,
-                timestamp,
-                inner_instructions,
-                meta,
-                accounts,
-            )
-            .into_iter()
-            .for_each(|mint| {
-                output.ai_trainer_payments.push(AiTrainerPayment { mint: Some(mint) });
-            });
-        }
-        AiTrainerRewards(obj) => {
-            process_inner_instructions_mint(
-                context.instruction_index,
-                &obj.account,
                 trx_hash,
                 timestamp,
                 inner_instructions,
@@ -281,6 +276,22 @@ pub fn process_inner_instructions(
             .into_iter()
             .for_each(|mint| {
                 output.no_split_payments.push(NoSplitPayment { mint: Some(mint) });
+            });
+        }
+        AiTrainerRewards(obj) => {
+            log::info!("processing AiTrainerRewards");
+            process_inner_instructions_mint(
+                context.instruction_index,
+                trx_hash,
+                timestamp,
+                inner_instructions,
+                meta,
+                accounts,
+            )
+            .into_iter()
+            .for_each(|mint| {
+                log::info!("processing AiTrainerRewards mints");
+                output.ai_trainer_payments.push(AiTrainerPayment { mint: Some(mint) });
             });
         }
         NoContext() => {
@@ -393,9 +404,11 @@ fn process_token_instruction(
             TokenInstruction::MintTo { amount: amt } | TokenInstruction::MintToChecked { amount: amt, .. } => {
                 let mint = fetch_account_to(&accounts, inst_accounts[0]);
                 if mint.ne(&constants::HONEY_CONTRACT_ADDRESS) {
+                    log::info!("TokenInstruction::MintTo::None");
                     return Ok(None);
                 }
 
+                log::info!("Found a mint!");
                 let account_to = fetch_account_to(&accounts, inst_accounts[1]);
                 return Ok(Some(Event {
                     r#type: (Type::Mint(Mint {
@@ -464,7 +477,6 @@ fn process_token_instruction(
 
 fn process_inner_instructions_mint(
     context_instruction_index: u32,
-    context_account: &String,
     trx_hash: &String,
     timestamp: i64,
     inner_instructions: &Vec<InnerInstructions>,
@@ -476,22 +488,23 @@ fn process_inner_instructions_mint(
         .iter()
         .filter(|&inner_instruction| inner_instruction.index == context_instruction_index)
         .for_each(|inner_instruction| {
+            log::info!("ICIT!");
             inner_instruction
                 .instructions
                 .iter()
                 .filter(|&inst| is_token_program_instruction(accounts, inst.program_id_index as usize))
                 .for_each(|inst| {
+                    log::info!("ICIT!2");
                     match process_token_instruction(&trx_hash, timestamp, &inst.data, &inst.accounts, meta, accounts) {
                         Err(err) => {
                             panic!("trx_hash {} process inner instructions mint: {}", trx_hash, err);
                         }
                         Ok(ev_option) => {
+                            log::info!("ICIT!3");
                             if let Some(ev) = ev_option {
                                 match ev.r#type {
                                     Type::Mint(mint) => {
-                                        if mint.to.eq(context_account) {
                                             mints.push(mint);
-                                        }
                                     }
                                     _ => {}
                                 }

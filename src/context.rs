@@ -13,17 +13,14 @@ pub mod context {
 
     #[derive(Debug)]
     pub struct RegularDriver {
-        pub driver_account: String,
     }
 
     #[derive(Debug)]
     pub struct NoTokenSplitting {
-        pub driver_account: String,
     }
 
     #[derive(Debug)]
     pub struct AiTrainerRewards {
-        pub account: String,
     }
 
     #[derive(Debug)]
