@@ -60,8 +60,7 @@ pub fn process_compiled_instruction(
                     trx_hash,
                     HMContext {
                         instruction_index: inst_index,
-                        r#type: Some(RegularDriver(context::RegularDriver {
-                        })),
+                        r#type: Some(RegularDriver(context::RegularDriver {})),
                     },
                     accounts,
                     &meta.inner_instructions,
@@ -77,8 +76,7 @@ pub fn process_compiled_instruction(
                     trx_hash,
                     HMContext {
                         instruction_index: inst_index,
-                        r#type: Some(NoTokenSplitting(context::NoTokenSplitting {
-                        })),
+                        r#type: Some(NoTokenSplitting(context::NoTokenSplitting {})),
                     },
                     accounts,
                     &meta.inner_instructions,
@@ -102,7 +100,6 @@ pub fn process_compiled_instruction(
                 );
 
                 return;
-
             }
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT => {}
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_2 => {}
@@ -120,15 +117,13 @@ pub fn process_compiled_instruction(
     if instruction_program_account == constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB {
         match inst.data[0] {
             constants::HONEY_AI_TRAINER_INSTRUCTION_BYTE => {
-                let account = &accounts[inst.accounts[2] as usize];
                 process_inner_instructions(
                     output,
                     timestamp,
                     trx_hash,
                     HMContext {
                         instruction_index: inst_index,
-                        r#type: Some(AiTrainerRewards(context::AiTrainerRewards {
-                        })),
+                        r#type: Some(AiTrainerRewards(context::AiTrainerRewards {})),
                     },
                     accounts,
                     &meta.inner_instructions,
@@ -137,7 +132,23 @@ pub fn process_compiled_instruction(
 
                 return;
             }
-            constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIBCREATE_ACCOUNT => {}
+            constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB_CREATE_ACCOUNT => {}
+            constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB_BURN => {
+                process_inner_instructions(
+                    output,
+                    timestamp,
+                    trx_hash,
+                    HMContext {
+                        instruction_index: inst_index,
+                        r#type: Some(NoContext()),
+                    },
+                    accounts,
+                    &meta.inner_instructions,
+                    meta,
+                );
+
+                return;
+            }
             _ => {
                 panic!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match trx_hash: {} inst.data: {}", trx_hash, inst.data[0]);
             }
@@ -504,7 +515,7 @@ fn process_inner_instructions_mint(
                             if let Some(ev) = ev_option {
                                 match ev.r#type {
                                     Type::Mint(mint) => {
-                                            mints.push(mint);
+                                        mints.push(mint);
                                     }
                                     _ => {}
                                 }
