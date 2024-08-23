@@ -1,14 +1,11 @@
 use crate::constants;
 use crate::context::context;
-use crate::context::context::HMContext;
+use crate::context::context::{HMContext};
 use crate::context::context::Type::{
-    AiTrainerRewards, NoContext, NoTokenSplitting, RegularDriver, TokenSplittingFleet,
+    AiTrainerRewards, NoContext, NoTokenSplitting, RegularDriver, TokenSplittingFleet, OperationalRewards,
 };
 use crate::event::{Event, Type};
-use crate::pb::hivemapper::types::v1::{
-    AiTrainerPayment, Burn, InitializedAccount, Mint, NoSplitPayment, Output, RegularDriverPayment,
-    TokenSplittingPayment, Transfer as Tr,
-};
+use crate::pb::hivemapper::types::v1::{AiTrainerPayment, Burn, InitializedAccount, Mint, NoSplitPayment, OperationalPayment, Output, RegularDriverPayment, TokenSplittingPayment, Transfer as Tr};
 use std::ops::Div;
 use substreams::errors::Error;
 
@@ -93,6 +90,22 @@ pub fn process_compiled_instruction(
                     HMContext {
                         instruction_index: inst_index,
                         r#type: Some(AiTrainerRewards(context::AiTrainerRewards {})),
+                    },
+                    accounts,
+                    &meta.inner_instructions,
+                    meta,
+                );
+
+                return;
+            }
+            constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_OPERATIOANL_REWARD => {
+                process_inner_instructions(
+                    output,
+                    timestamp,
+                    trx_hash,
+                    HMContext {
+                        instruction_index: inst_index,
+                        r#type: Some(OperationalRewards(context::OperationalRewards {})),
                     },
                     accounts,
                     &meta.inner_instructions,
@@ -304,6 +317,22 @@ pub fn process_inner_instructions(
             .for_each(|mint| {
                 log::info!("processing AiTrainerRewards mints");
                 output.ai_trainer_payments.push(AiTrainerPayment { mint: Some(mint) });
+            });
+        }
+        OperationalRewards(obj) => {
+            log::info!("processing OperationalRewards");
+            process_inner_instructions_mint(
+                context.instruction_index,
+                trx_hash,
+                timestamp,
+                inner_instructions,
+                meta,
+                accounts,
+            )
+            .into_iter()
+            .for_each(|mint| {
+                log::info!("processing operational mints");
+                output.operational_payments.push(OperationalPayment { mint: Some(mint) });
             });
         }
         NoContext() => {

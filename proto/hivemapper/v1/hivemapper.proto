@@ -8,6 +8,7 @@ message Output {
   repeated NoSplitPayment no_split_payments = 30;
 
   repeated AiTrainerPayment ai_trainer_payments = 50;
+  repeated OperationalPayment operational_payments = 51;
 
   repeated Transfer transfers = 60;
   repeated Mint mints = 70;
@@ -26,6 +27,8 @@ message RegularDriverPayment { Mint mint = 1; }
 message NoSplitPayment { Mint mint = 1; }
 
 message AiTrainerPayment { Mint mint = 1; }
+
+message OperationalPayment { Mint mint = 1; }
 
 message Payment { Mint mint = 1; }
 

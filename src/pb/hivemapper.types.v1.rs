@@ -10,6 +10,8 @@ pub struct Output {
     pub no_split_payments: ::prost::alloc::vec::Vec<NoSplitPayment>,
     #[prost(message, repeated, tag="50")]
     pub ai_trainer_payments: ::prost::alloc::vec::Vec<AiTrainerPayment>,
+    #[prost(message, repeated, tag="51")]
+    pub operational_payments: ::prost::alloc::vec::Vec<OperationalPayment>,
     #[prost(message, repeated, tag="60")]
     pub transfers: ::prost::alloc::vec::Vec<Transfer>,
     #[prost(message, repeated, tag="70")]
@@ -42,6 +44,12 @@ pub struct NoSplitPayment {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiTrainerPayment {
+    #[prost(message, optional, tag="1")]
+    pub mint: ::core::option::Option<Mint>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OperationalPayment {
     #[prost(message, optional, tag="1")]
     pub mint: ::core::option::Option<Mint>,
 }

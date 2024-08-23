@@ -22,6 +22,9 @@ pub mod context {
     #[derive(Debug)]
     pub struct AiTrainerRewards {
     }
+    #[derive(Debug)]
+    pub struct OperationalRewards {
+    }
 
     #[derive(Debug)]
     pub enum Type {
@@ -29,6 +32,7 @@ pub mod context {
         RegularDriver(RegularDriver),
         NoTokenSplitting(NoTokenSplitting),
         AiTrainerRewards(AiTrainerRewards),
+        OperationalRewards(OperationalRewards),
         NoContext(),
     }
 }
