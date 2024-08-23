@@ -162,6 +162,23 @@ pub fn process_compiled_instruction(
 
                 return;
             }
+            constants::HONEY_BURN_AND_ADD_ADDITIOANL_HONEY_SUPPLY => {
+                process_inner_instructions(
+                    output,
+                    timestamp,
+                    trx_hash,
+                    HMContext {
+                        instruction_index: inst_index,
+                        r#type: Some(NoContext()),
+                    },
+                    accounts,
+                    &meta.inner_instructions,
+                    meta,
+                );
+
+                return;
+
+            }
             constants::HONEY_BURN_MAP_CREDIT => {}
             _ => {
                 panic!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match trx_hash: {} inst.data: {}", trx_hash, inst.data[0]);
