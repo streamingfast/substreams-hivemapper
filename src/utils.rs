@@ -118,6 +118,7 @@ pub fn process_compiled_instruction(
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_2 => {}
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_3 => {}
             constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_4 => {}
+            constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_REMOVE_INVOICE => {}
             _ => {
                 if constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_IGNORE_LIST.contains(&inst.data[0]) {
                     return;
