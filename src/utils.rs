@@ -29,7 +29,7 @@ pub fn process_compiled_instruction(
 
     if instruction_program_account == constants::HONEY_TOKEN_INSTRUCTION_PROGRAM {
         match inst.data[0] {
-            constants::HONEY_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
+            constants::HONEY_LIB_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
                 let fleet_account = &accounts[inst.accounts[4] as usize];
                 let fleet_driver_account = &accounts[inst.accounts[3] as usize];
                 process_inner_instructions(
@@ -50,7 +50,7 @@ pub fn process_compiled_instruction(
 
                 return;
             }
-            constants::HONEY_REGULAR_DRIVER_INSTRUCTION_BYTE => {
+            constants::HONEY_LIB_REGULAR_DRIVER_INSTRUCTION_BYTE => {
                 process_inner_instructions(
                     output,
                     timestamp,
@@ -66,7 +66,7 @@ pub fn process_compiled_instruction(
 
                 return;
             }
-            constants::HONEY_NO_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
+            constants::HONEY_LIB_NO_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
                 process_inner_instructions(
                     output,
                     timestamp,
@@ -130,7 +130,7 @@ pub fn process_compiled_instruction(
 
     if instruction_program_account == constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB {
         match inst.data[0] {
-            constants::HONEY_AI_TRAINER_INSTRUCTION_BYTE => {
+            constants::HONEY_LIB_AI_TRAINER_INSTRUCTION_BYTE => {
                 process_inner_instructions(
                     output,
                     timestamp,
@@ -163,7 +163,7 @@ pub fn process_compiled_instruction(
 
                 return;
             }
-            constants::HONEY_BURN_AND_ADD_ADDITIOANL_HONEY_SUPPLY => {
+            constants::HONEY_LIB_BURN_AND_ADD_ADDITIONAL_HONEY_SUPPLY => {
                 process_inner_instructions(
                     output,
                     timestamp,
@@ -180,7 +180,8 @@ pub fn process_compiled_instruction(
                 return;
 
             }
-            constants::HONEY_BURN_MAP_CREDIT => {}
+            constants::HONEY_LIB_BURN_MAP_CREDIT => {}
+            constants::HONEY_LIB_UPDATE_CREDIT_TO_HONEY_RATE => {}
             _ => {
                 panic!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match trx_hash: {} inst.data: {}", trx_hash, inst.data[0]);
             }
