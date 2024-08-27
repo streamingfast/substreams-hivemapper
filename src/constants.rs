@@ -18,6 +18,7 @@ pub const HONEY_LIB_BURN_MAP_CREDIT: u8 = 226; // 0xe2
 pub const HONEY_LIB_BURN_AND_ADD_ADDITIONAL_HONEY_SUPPLY: u8 = 157; // 0x9d
 pub const HONEY_LIB_UPDATE_CREDIT_TO_HONEY_RATE: u8 = 182; // 0xb6
 
+pub const HONEY_LIB_BURN: u8 = 116; // 0x74
 
 
 

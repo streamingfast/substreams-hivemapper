@@ -180,6 +180,22 @@ pub fn process_compiled_instruction(
                 return;
 
             }
+            constants::HONEY_LIB_BURN => {
+                process_inner_instructions(
+                    output,
+                    timestamp,
+                    trx_hash,
+                    HMContext {
+                        instruction_index: inst_index,
+                        r#type: Some(NoContext()),
+                    },
+                    accounts,
+                    &meta.inner_instructions,
+                    meta,
+                );
+
+                return;
+            }
             constants::HONEY_LIB_BURN_MAP_CREDIT => {}
             constants::HONEY_LIB_UPDATE_CREDIT_TO_HONEY_RATE => {}
             _ => {
@@ -464,11 +480,9 @@ fn process_token_instruction(
             TokenInstruction::MintTo { amount: amt } | TokenInstruction::MintToChecked { amount: amt, .. } => {
                 let mint = fetch_account_to(&accounts, inst_accounts[0]);
                 if mint.ne(&constants::HONEY_CONTRACT_ADDRESS) {
-                    log::info!("TokenInstruction::MintTo::None");
                     return Ok(None);
                 }
 
-                log::info!("Found a mint!");
                 let account_to = fetch_account_to(&accounts, inst_accounts[1]);
                 return Ok(Some(Event {
                     r#type: (Type::Mint(Mint {
@@ -548,19 +562,16 @@ fn process_inner_instructions_mint(
         .iter()
         .filter(|&inner_instruction| inner_instruction.index == context_instruction_index)
         .for_each(|inner_instruction| {
-            log::info!("ICIT!");
             inner_instruction
                 .instructions
                 .iter()
                 .filter(|&inst| is_token_program_instruction(accounts, inst.program_id_index as usize))
                 .for_each(|inst| {
-                    log::info!("ICIT!2");
                     match process_token_instruction(&trx_hash, timestamp, &inst.data, &inst.accounts, meta, accounts) {
                         Err(err) => {
                             panic!("trx_hash {} process inner instructions mint: {}", trx_hash, err);
                         }
                         Ok(ev_option) => {
-                            log::info!("ICIT!3");
                             if let Some(ev) = ev_option {
                                 match ev.r#type {
                                     Type::Mint(mint) => {
