@@ -1,14 +1,11 @@
 mod constants;
 mod event;
 mod pb;
-// mod utils;
 
 use std::ops::Div;
 use crate::pb::hivemapper::types::v1::{AiTrainerPayment, Burn, InitializedAccount, Mint, NoSplitPayment, OperationalPayment, Output, RegularDriverPayment, RewardPayment, TokenSplittingPayment};
 use substreams::errors::Error;
 use substreams_solana::Address;
-use substreams::log;
-use substreams_solana::b58;
 use substreams_solana::block_view::InstructionView;
 use substreams_solana::pb::sf::solana::r#type::v1::{Block, TokenBalance, TransactionStatusMeta};
 use substreams_solana_program_instructions::token_instruction_2022::TokenInstruction;
@@ -39,16 +36,21 @@ pub fn process_instruction(
     compile_instruction: &InstructionView,
 ) {
     let trx_hash = &bs58::encode(compile_instruction.transaction().hash()).into_string();
-
     match compile_instruction.program_id().to_string().as_ref() {
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM => {
-            process_honey_program_inner_instruction(compile_instruction, &bs58::encode(trx_hash).into_string(), timestamp, compile_instruction.meta(), output);
+            process_honey_program_inner_instruction(compile_instruction, trx_hash, timestamp, compile_instruction.meta(), output);
         }
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB => {
-            process_honey_token_lib(compile_instruction, trx_hash, timestamp, compile_instruction.meta(), output);
+            process_honey_token_lib(
+                compile_instruction,
+                &compile_instruction.inner_instructions().nth(1).unwrap(),
+                trx_hash,
+                timestamp,
+                compile_instruction.meta(),
+                output
+            );
         }
         constants::SOLANA_TOKEN_PROGRAM => {
-
             match process_token_instruction(compile_instruction, trx_hash, timestamp, compile_instruction.meta()) {
                 Err(err) => {
                     panic!("trx_hash {} process token instructions: {}", trx_hash, err);
@@ -76,29 +78,36 @@ pub fn process_instruction(
 }
 
 pub fn process_honey_token_lib(
-    compile_instruction: &InstructionView,
+    instruction: &InstructionView,
+    secondinstruction: &InstructionView,
     trx_hash: &String,
     timestamp: i64,
     meta: &TransactionStatusMeta,
     output: &mut Output,
-){
-    match compile_instruction.data()[0] {
+) {
+    
+    if instruction.program_id().to_string().as_str() != constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB {
+        panic!("expected instruction of program HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB")
+    }
+    
+    match instruction.data()[0] {
         constants::HONEY_LIB_AI_TRAINER_INSTRUCTION_BYTE => {
-            process_pay_ai_trainer_payment(compile_instruction, trx_hash, timestamp, meta, output);
+            process_pay_ai_trainer_payment(secondinstruction, trx_hash, timestamp, meta, output);
         }
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB_BURN => {
-            process_burns(compile_instruction, trx_hash, timestamp, meta, output);
+            process_burns(secondinstruction, trx_hash, timestamp, meta, output);
         }
         constants::HONEY_LIB_BURN_AND_ADD_ADDITIONAL_HONEY_SUPPLY => {
-            panic!("fix me");
+            panic!("fix me trx {}", trx_hash);
         }
         constants::HONEY_LIB_BURN => {
-            process_burns(compile_instruction, trx_hash, timestamp, meta, output);        }
+            process_burns(secondinstruction, trx_hash, timestamp, meta, output);
+        }
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB_CREATE_ACCOUNT => {}
         constants::HONEY_LIB_BURN_MAP_CREDIT => {}
         constants::HONEY_LIB_UPDATE_CREDIT_TO_HONEY_RATE => {}
         _ => {
-            panic!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match trx_hash: {} inst.data: {}", trx_hash, compile_instruction.data()[0]);
+            panic!("instruction program account HONEY_TOKEN_SPLITTING_CONTRACT but found no match trx_hash: {} inst.data: {}", trx_hash, instruction.data()[0]);
         }
     }
 }
@@ -153,21 +162,64 @@ pub fn process_honey_program_inner_instruction(
             return;
         }
         constants::HONEY_LIB_REGULAR_DRIVER_INSTRUCTION_BYTE => {
-            process_regular_driver_payment(compile_instruction, trx_hash, timestamp, meta, output)
+            process_regular_driver_payment(
+                &compile_instruction.inner_instructions().nth(1).unwrap(),
+                trx_hash,
+                timestamp,
+                meta,
+                output
+            )
         }
 
         constants::HONEY_LIB_NO_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
-            process_no_token_splitting_payment(compile_instruction, trx_hash, timestamp, meta, output)
+            process_no_token_splitting_payment(
+                &compile_instruction.inner_instructions().nth(1).unwrap(),
+                trx_hash,
+                timestamp,
+                meta,
+                output
+            )
         }
 
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_IMAGERY_QA_INVOICE => {
-            process_pay_imagery_qa_invoice(compile_instruction, trx_hash, timestamp, meta, output)
+            process_pay_imagery_qa_invoice(
+                &compile_instruction.inner_instructions().nth(1).unwrap(),
+                trx_hash,
+                timestamp,
+                meta,
+                output
+            )
         }
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_OPERATIOANL_REWARD => {
-            process_pay_operational_reward(compile_instruction, trx_hash, timestamp, meta, output)
+            panic!("double check if it need is own type or should we handle it like HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_REWARD");
+            process_pay_operational_reward(
+                &compile_instruction.inner_instructions().nth(1).unwrap(),
+                trx_hash,
+                timestamp,
+                meta,
+                output
+            )
         }
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_REWARD => {
-            process_pay_reward(compile_instruction, trx_hash, timestamp, meta, output)
+            process_honey_token_lib(
+                &compile_instruction.inner_instructions().nth(0).unwrap(),
+                &compile_instruction.inner_instructions().nth(1).unwrap(),
+                trx_hash,
+                timestamp,
+                compile_instruction.meta(),
+                output
+            );
+
+        }
+        constants::HONEY_LIB_PAY_AND_FORWARD_REWARD => {
+            process_honey_token_lib(
+                &compile_instruction.inner_instructions().nth(0).unwrap(),
+                &compile_instruction.inner_instructions().nth(1).unwrap(),
+                trx_hash,
+                timestamp,
+                compile_instruction.meta(),
+                output
+            );
         }
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT => {}
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_2 => {}
@@ -176,78 +228,49 @@ pub fn process_honey_program_inner_instruction(
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_REMOVE_INVOICE => {}
 
         _ => {
-            panic!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match trx_hash: {} inst.data: {}", trx_hash.to_string(), compile_instruction.data()[0]);
+            panic!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match trx_hash: {} inst.data: {}", trx_hash, compile_instruction.data()[0]);
         }
     }
 }
 
-fn process_pay_reward(
-    compile_instruction: &InstructionView,
-    trx_hash: &String,
-    timestamp: i64,
-    meta: &TransactionStatusMeta,
-    output: &mut Output,
-) {
-    if compile_instruction.inner_instructions().count() != 2 {
-        panic!("expecting 2 instructions for pay_reward");
-    }
 
-    let mint_instruction = compile_instruction.inner_instructions().nth(1).unwrap();
-    let mint = extract_mint_to(&mint_instruction, trx_hash, timestamp, meta);
-
-    output.reward_payments.push(RewardPayment{
-        mint:Some(mint)
-    })
-}
 fn process_pay_operational_reward(
-    compile_instruction: &InstructionView,
+    instruction_view:  &InstructionView,
     trx_hash: &String,
     timestamp: i64,
     meta: &TransactionStatusMeta,
     output: &mut Output,
 ) {
-    if compile_instruction.inner_instructions().count() != 2 {
-        panic!("expecting 2 instructions for operational_reward");
-    }
-
-    let mint_instruction = compile_instruction.inner_instructions().nth(1).unwrap();
-    let mint = extract_mint_to(&mint_instruction, trx_hash, timestamp, meta);
+    let mint = extract_mint_to(&instruction_view, trx_hash, timestamp, meta);
 
     output.operational_payments.push(OperationalPayment {
         mint: Some(mint)
     });
 }
+
+
 fn process_pay_imagery_qa_invoice(
-    compile_instruction: &InstructionView,
+    instruction: &InstructionView,
     trx_hash: &String,
     timestamp: i64,
     meta: &TransactionStatusMeta,
     output: &mut Output,
 ) {
-    if compile_instruction.inner_instructions().count() != 2 {
-        panic!("expecting 2 instructions for imagery_qa_invoice");
-    }
 
-    let mint_instruction = compile_instruction.inner_instructions().nth(1).unwrap();
-    let mint = extract_mint_to(&mint_instruction, trx_hash, timestamp, meta);
+    let mint = extract_mint_to(&instruction, trx_hash, timestamp, meta);
 
     output.ai_trainer_payments.push(AiTrainerPayment {
         mint: Some(mint)
     });
 }
 fn process_pay_ai_trainer_payment(
-    compile_instruction: &InstructionView,
+    instruction: &InstructionView,
     trx_hash: &String,
     timestamp: i64,
     meta: &TransactionStatusMeta,
     output: &mut Output,
 ) {
-    if compile_instruction.inner_instructions().count() != 2 {
-        panic!("expecting 2 instructions for ai_trainer_payment");
-    }
-
-    let mint_instruction = compile_instruction.inner_instructions().nth(1).unwrap();
-    let mint = extract_mint_to(&mint_instruction, trx_hash, timestamp, meta);
+    let mint = extract_mint_to(&instruction, trx_hash, timestamp, meta);
 
     output.ai_trainer_payments.push(AiTrainerPayment {
         mint: Some(mint)
@@ -260,7 +283,6 @@ fn extract_mint_to(
     timestamp: i64,
     meta: &TransactionStatusMeta,
 ) -> Mint {
-
     match crate::process_token_instruction(&mint_instruction, trx_hash, timestamp, meta) {
         Err(err) => {
             panic!("trx_hash {} token splitting fleet: {}", trx_hash, err);
@@ -272,7 +294,7 @@ fn extract_mint_to(
                         return mint;
                     }
                     _ => {
-                        panic!("expecting only mint")
+                        panic!("expecting only mint trx {}", trx_hash)
                     }
                 }
             }
@@ -282,21 +304,15 @@ fn extract_mint_to(
 }
 
 fn process_burns(
-    compile_instruction: &InstructionView,
+    instruction: &InstructionView,
     trx_hash: &String,
     timestamp: i64,
     meta: &TransactionStatusMeta,
     output: &mut Output,
-){
-    if compile_instruction.inner_instructions().count() != 1 {
-        panic!("expecting 1 instructions for process_burns got: {}",  compile_instruction.inner_instructions().count() );
-    }
-
-    let burn_instruction = compile_instruction.inner_instructions().nth(0).unwrap();
-    let burn = extract_burn(&burn_instruction, trx_hash, timestamp, meta);
+) {
+    let burn = extract_burn(&instruction, trx_hash, timestamp, meta);
 
     output.burns.push(burn);
-
 }
 
 
@@ -306,10 +322,9 @@ fn extract_burn(
     timestamp: i64,
     meta: &TransactionStatusMeta,
 ) -> Burn {
-
     match crate::process_token_instruction(&burn_instruction, trx_hash, timestamp, meta) {
         Err(err) => {
-            panic!("trx_hash {} token splitting fleet: {}", trx_hash, err);
+            panic!("trx_hash {} token splitting fleet: {} trx {}", trx_hash, err, trx_hash);
         }
         Ok(ev_option) => {
             if let Some(ev) = ev_option {
@@ -318,28 +333,24 @@ fn extract_burn(
                         return burn;
                     }
                     _ => {
-                        panic!("expecting only mint")
+                        panic!("expecting only mint trx {}", trx_hash)
                     }
                 }
             }
         }
     }
-    panic!("no burn found, trx_hash {}", trx_hash.to_string())
+    panic!("no burn found, trx_hash trx {}", trx_hash)
 }
 
 fn process_no_token_splitting_payment(
-    compile_instruction: &InstructionView,
+    instruction: &InstructionView,
     trx_hash: &String,
     timestamp: i64,
     meta: &TransactionStatusMeta,
     output: &mut Output,
 ) {
-    if compile_instruction.inner_instructions().count() != 2 {
-        panic!("expecting 2 instructions for regular driver payment");
-    }
 
-    let mint_instruction = compile_instruction.inner_instructions().nth(1).unwrap();
-    let mint = extract_mint_to(&mint_instruction, trx_hash, timestamp, meta);
+    let mint = extract_mint_to(&instruction, trx_hash, timestamp, meta);
 
     output.no_split_payments.push(NoSplitPayment {
         mint: Some(mint)
@@ -347,18 +358,14 @@ fn process_no_token_splitting_payment(
 }
 
 pub fn process_regular_driver_payment(
-    compile_instruction: &InstructionView,
+    instruction: &InstructionView,
     trx_hash: &String,
     timestamp: i64,
     meta: &TransactionStatusMeta,
     output: &mut Output,
 ) {
-    if compile_instruction.inner_instructions().count() != 2 {
-        panic!("expecting 2 instructions for regular driver payment");
-    }
 
-    let mint_instruction = compile_instruction.inner_instructions().nth(1).unwrap();
-    let mint = extract_mint_to(&mint_instruction, trx_hash, timestamp, meta);
+    let mint = extract_mint_to(&instruction, trx_hash, timestamp, meta);
 
     output.regular_driver_payments.push(RegularDriverPayment {
         mint: Some(mint)
@@ -397,7 +404,7 @@ pub fn process_token_splitting_fleet(
                             } else if mint.to.eq(&fleet_driver_account.to_string()) {
                                 driver_mint = Some(mint);
                             } else {
-                                panic!("mint not found! for driver or fleet");
+                                panic!("mint not found! for driver or fleet trx {}", trx_hash);
                             }
                         }
                         _ => {}
@@ -412,7 +419,7 @@ pub fn process_token_splitting_fleet(
             driver_mint,
         })
     } else {
-        panic!("Missing a mints {} {}", manager_mint.is_some(), driver_mint.is_some());
+        panic!("Missing a mints {} {} trx {}", manager_mint.is_some(), driver_mint.is_some(), trx_hash);
     }
 }
 
