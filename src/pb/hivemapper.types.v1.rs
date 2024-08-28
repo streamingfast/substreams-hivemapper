@@ -12,6 +12,8 @@ pub struct Output {
     pub ai_trainer_payments: ::prost::alloc::vec::Vec<AiTrainerPayment>,
     #[prost(message, repeated, tag="51")]
     pub operational_payments: ::prost::alloc::vec::Vec<OperationalPayment>,
+    #[prost(message, repeated, tag="52")]
+    pub reward_payments: ::prost::alloc::vec::Vec<RewardPayment>,
     #[prost(message, repeated, tag="60")]
     pub transfers: ::prost::alloc::vec::Vec<Transfer>,
     #[prost(message, repeated, tag="70")]
@@ -56,6 +58,12 @@ pub struct OperationalPayment {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Payment {
+    #[prost(message, optional, tag="1")]
+    pub mint: ::core::option::Option<Mint>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RewardPayment {
     #[prost(message, optional, tag="1")]
     pub mint: ::core::option::Option<Mint>,
 }

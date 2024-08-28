@@ -532,6 +532,7 @@ dependencies = [
  "anyhow",
  "bs58",
  "getrandom",
+ "log",
  "prost",
  "prost-types",
  "substreams",
@@ -554,8 +555,8 @@ dependencies = [
 
 [[package]]
 name = "substreams-solana"
-version = "0.11.1"
-source = "git+https://github.com/streamingfast/substreams-solana?branch=master#1f66cc3081f61ad1189dc814cb82096ae5ac4b3b"
+version = "0.13.0"
+source = "git+https://github.com/streamingfast/substreams-solana?branch=release/0.13.0#7bfb39f5751e7f76a643be6f34d6a0dad658f09f"
 dependencies = [
  "anyhow",
  "num_enum",
@@ -566,8 +567,8 @@ dependencies = [
 
 [[package]]
 name = "substreams-solana-core"
-version = "0.11.1"
-source = "git+https://github.com/streamingfast/substreams-solana?branch=master#1f66cc3081f61ad1189dc814cb82096ae5ac4b3b"
+version = "0.13.0"
+source = "git+https://github.com/streamingfast/substreams-solana?branch=release/0.13.0#7bfb39f5751e7f76a643be6f34d6a0dad658f09f"
 dependencies = [
  "bs58",
  "prost",
@@ -577,8 +578,8 @@ dependencies = [
 
 [[package]]
 name = "substreams-solana-macro"
-version = "0.11.1"
-source = "git+https://github.com/streamingfast/substreams-solana?branch=master#1f66cc3081f61ad1189dc814cb82096ae5ac4b3b"
+version = "0.13.0"
+source = "git+https://github.com/streamingfast/substreams-solana?branch=release/0.13.0#7bfb39f5751e7f76a643be6f34d6a0dad658f09f"
 dependencies = [
  "bs58",
 ]
