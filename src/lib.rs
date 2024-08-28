@@ -19,8 +19,6 @@ pub fn map_outputs(block: Block) -> Result<Output, Error> {
     let mut output = Output::default();
     let timestamp = block.block_time.as_ref().unwrap().timestamp;
 
-    log::info!("Processing block  {:?}", block.block_height.as_ref().unwrap());
-
     for confirmed_trx in block.transactions_owned() {
         for instruction in confirmed_trx.compiled_instructions() {
             process_instruction(
@@ -41,20 +39,15 @@ pub fn process_instruction(
     compile_instruction: &InstructionView,
 ) {
     let trx_hash = &bs58::encode(compile_instruction.transaction().hash()).into_string();
-    // if trx_hash != "33UkzSDNqBJAtzhhfLWEnDFTDKednPU2bGBQRHCBbzDKvhCPdVdd3qmbCwrVoj9jwdzNU9RemZ6A3R2nMdr3LAPM" {
-    //     return;
-    // }
+
     match compile_instruction.program_id().to_string().as_ref() {
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM => {
-            log::info!("Compiled instruction matching HONEY_TOKEN_INSTRUCTION_PROGRAM");
             process_honey_program_inner_instruction(compile_instruction, &bs58::encode(trx_hash).into_string(), timestamp, compile_instruction.meta(), output);
         }
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB => {
-            log::info!("Compiled instruction matching HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB");
             process_honey_token_lib(compile_instruction, trx_hash, timestamp, compile_instruction.meta(), output);
         }
         constants::SOLANA_TOKEN_PROGRAM => {
-            log::info!("Compiled Instruction matching SOLANA_TOKEN_PROGRAM");
 
             match process_token_instruction(compile_instruction, trx_hash, timestamp, compile_instruction.meta()) {
                 Err(err) => {
@@ -77,7 +70,6 @@ pub fn process_instruction(
             }
         }
         _ => {
-            log::info!("Compiled Instruction not matching processing inner{}", compile_instruction.program_id());
             process_default_inner_instruction(compile_instruction, trx_hash, timestamp, compile_instruction.meta(), output);
         }
     }
@@ -142,7 +134,7 @@ pub fn process_default_inner_instruction(
                 }
             }
             _ => {
-                log::info!("inner not match {} {:?} -- {:?} {}", inner.program_id(), inner.program_id().0, constants::SOLANA_TOKEN_PROGRAM, bs58::encode(constants::SOLANA_TOKEN_PROGRAM).into_string());
+                // log::info!("inner not match {} {:?} -- {:?} {}", inner.program_id(), inner.program_id().0, constants::SOLANA_TOKEN_PROGRAM, bs58::encode(constants::SOLANA_TOKEN_PROGRAM).into_string());
             }
         }
     }
@@ -184,7 +176,7 @@ pub fn process_honey_program_inner_instruction(
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_REMOVE_INVOICE => {}
 
         _ => {
-            panic!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match trx_hash: {} inst.data: {}", trx_hash, compile_instruction.data()[0]);
+            panic!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match trx_hash: {} inst.data: {}", trx_hash.to_string(), compile_instruction.data()[0]);
         }
     }
 }
@@ -390,7 +382,6 @@ pub fn process_token_splitting_fleet(
 
     for inner_instruction in compile_instruction.inner_instructions() {
         if inner_instruction.program_id().to_string().as_str() != constants::SOLANA_TOKEN_PROGRAM {
-            log::info!("skipping instruction {}", inner_instruction.program_id());
             continue;
         }
         match process_token_instruction(&inner_instruction, trx_hash, timestamp, meta) {
@@ -434,17 +425,14 @@ pub fn process_token_instruction(
 ) -> Result<Option<Event>, Error> {
     match TokenInstruction::unpack(&instruction.data()) {
         Err(err) => {
-            substreams::log::info!("unpacking token instruction {:?}", err);
             return Err(anyhow::anyhow!("unpacking token instruction: {}", err));
         }
         Ok(token_instruction) => match token_instruction {
             TokenInstruction::Transfer { amount: amt } => {
                 let authority = &instruction.accounts()[2];
-                log::info!("matching transfer with authority {}", authority);
 
                 // let authority = &accounts[inst_accounts[2] as usize];
                 if is_honey_token_transfer(&meta.pre_token_balances, authority) {
-                    log::info!("matching honey transfer");
                     let source = &instruction.accounts()[0];
                     // let source = &accounts[inst_accounts[0] as usize];
                     let destination = &instruction.accounts()[1];
@@ -481,9 +469,7 @@ pub fn process_token_instruction(
             }
             TokenInstruction::MintTo { amount: amt } | TokenInstruction::MintToChecked { amount: amt, .. } => {
                 let mint = &instruction.accounts()[0];
-                log::info!("matching MintTo with mint {}", mint);
                 if mint.to_string().as_str() != constants::HONEY_CONTRACT_ADDRESS {
-                    log::info!("why?");
                     return Ok(None);
                 }
 
@@ -561,7 +547,6 @@ fn amount_to_decimals(amount: f64, decimal: f64) -> f64 {
 
 pub fn is_honey_token_transfer(pre_token_balances: &Vec<TokenBalance>, account: &Address) -> bool {
     for token_balance in pre_token_balances.iter() {
-        log::info!("owner account {} account {} mint {}", token_balance.owner,account, token_balance.mint);
         if token_balance.owner.eq(account.to_string().as_str()) && token_balance.mint.eq(constants::HONEY_CONTRACT_ADDRESS) {
             return true;
         }
