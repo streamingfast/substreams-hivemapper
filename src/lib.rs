@@ -41,9 +41,12 @@ pub fn process_instruction(
             process_honey_program_inner_instruction(compile_instruction, trx_hash, timestamp, compile_instruction.meta(), output);
         }
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB => {
+            if compile_instruction.inner_instructions().count() != 1 {
+                panic!("expecting 1 instructions trx {}", trx_hash );
+            }
             process_honey_token_lib(
                 compile_instruction,
-                &compile_instruction.inner_instructions().nth(1).unwrap(),
+                &compile_instruction.inner_instructions().nth(0).unwrap(),
                 trx_hash,
                 timestamp,
                 compile_instruction.meta(),
