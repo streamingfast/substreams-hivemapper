@@ -226,6 +226,7 @@ pub fn process_honey_program_inner_instruction(
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_3 => {}
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_4 => {}
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_REMOVE_INVOICE => {}
+        constants::HONEY_TOKEN_INSTRUCTION_UPDATE_MAP_PROGRESS => {}
 
         _ => {
             panic!("instruction program account HONEY_TOKEN_INSTRUCTION_PROGRAM but found no match trx_hash: {} inst.data: {}", trx_hash, compile_instruction.data()[0]);
