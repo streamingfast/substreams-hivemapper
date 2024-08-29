@@ -105,7 +105,7 @@ pub fn process_honey_token_lib(
             process_burns(secondinstruction, trx_hash, timestamp, meta, output);
         }
         constants::HONEY_LIB_BURN_AND_ADD_ADDITIONAL_HONEY_SUPPLY => {
-            panic!("fix me trx {}", trx_hash);
+            process_burns(secondinstruction, trx_hash, timestamp, meta, output);
         }
         constants::HONEY_LIB_BURN => {
             process_burns(secondinstruction, trx_hash, timestamp, meta, output);
