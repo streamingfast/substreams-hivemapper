@@ -1,12 +1,15 @@
 specVersion: v0.1.0
 package:
   name: hivemapper
-  version: v0.2.4
+  version: v0.2.5
   url: https://github.com/streamingfast/substreams-hivemapper
   image: ./hivemapper.png
   doc: |
     These substream modules compose all the things to build up the Hivemapper substreams.
     See individual modules docs for help.
+
+#imports:
+#  solana-common: https://github.com/streamingfast/substreams-foundational-modules/releases/download/solana-common-v0.2.0/solana-common-v0.2.0.spkg
 
 protobuf:
   files:

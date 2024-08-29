@@ -41,7 +41,11 @@ pub fn process_instruction(
             process_honey_program_inner_instruction(compile_instruction, trx_hash, timestamp, compile_instruction.meta(), output);
         }
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB => {
-            if compile_instruction.inner_instructions().count() != 1 {
+            let instruction_count = compile_instruction.inner_instructions().count(); 
+            if instruction_count == 0 {
+                return;
+            }
+            if instruction_count != 1 {
                 panic!("expecting 1 instructions trx {}", trx_hash );
             }
             process_honey_token_lib(
@@ -106,6 +110,7 @@ pub fn process_honey_token_lib(
         constants::HONEY_LIB_BURN => {
             process_burns(secondinstruction, trx_hash, timestamp, meta, output);
         }
+        
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB_CREATE_ACCOUNT => {}
         constants::HONEY_LIB_BURN_MAP_CREDIT => {}
         constants::HONEY_LIB_UPDATE_CREDIT_TO_HONEY_RATE => {}
