@@ -165,11 +165,31 @@ pub fn process_honey_program_inner_instruction(
     output: &mut Output,
 ) {
     match compile_instruction.data()[0] {
-        constants::HONEY_LIB_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
-            process_token_splitting_fleet(compile_instruction, trx_hash, timestamp, meta, output);
-            return;
-        }
-        constants::HONEY_LIB_REGULAR_DRIVER_INSTRUCTION_BYTE => {
+        // constants::HONEY_LIB_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
+        //     process_token_splitting_fleet(compile_instruction, trx_hash, timestamp, meta, output);
+        //     return;
+        // }
+        // constants::HONEY_LIB_REGULAR_DRIVER_INSTRUCTION_BYTE => {
+        //     process_regular_driver_payment(
+        //         &compile_instruction.inner_instructions().nth(1).unwrap(),
+        //         trx_hash,
+        //         timestamp,
+        //         meta,
+        //         output
+        //     )
+        // }
+
+        // constants::HONEY_LIB_NO_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
+        //     process_no_token_splitting_payment(
+        //         &compile_instruction.inner_instructions().nth(1).unwrap(),
+        //         trx_hash,
+        //         timestamp,
+        //         meta,
+        //         output
+        //     )
+        // }
+
+        constants::HONEY_TOKEN_INSTRUCTION_PAY_TO => {
             process_regular_driver_payment(
                 &compile_instruction.inner_instructions().nth(1).unwrap(),
                 trx_hash,
@@ -178,17 +198,6 @@ pub fn process_honey_program_inner_instruction(
                 output
             )
         }
-
-        constants::HONEY_LIB_NO_TOKEN_SPLITTING_INSTRUCTION_BYTE => {
-            process_no_token_splitting_payment(
-                &compile_instruction.inner_instructions().nth(1).unwrap(),
-                trx_hash,
-                timestamp,
-                meta,
-                output
-            )
-        }
-
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_IMAGERY_QA_INVOICE => {
             process_pay_imagery_qa_invoice(
                 &compile_instruction.inner_instructions().nth(1).unwrap(),
@@ -219,7 +228,7 @@ pub fn process_honey_program_inner_instruction(
             );
 
         }
-        constants::HONEY_LIB_PAY_AND_FORWARD_REWARD => {
+        constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_AND_FORWARD_REWARD => {
             process_honey_token_lib(
                 &compile_instruction.inner_instructions().nth(0).unwrap(),
                 &compile_instruction.inner_instructions().nth(1).unwrap(),
