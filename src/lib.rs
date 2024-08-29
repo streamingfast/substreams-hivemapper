@@ -199,14 +199,14 @@ pub fn process_honey_program_inner_instruction(
             )
         }
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_OPERATIOANL_REWARD => {
-            panic!("double check if it need is own type or should we handle it like HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_REWARD");
-            process_pay_operational_reward(
+            process_honey_token_lib(
+                &compile_instruction.inner_instructions().nth(0).unwrap(),
                 &compile_instruction.inner_instructions().nth(1).unwrap(),
                 trx_hash,
                 timestamp,
-                meta,
+                compile_instruction.meta(),
                 output
-            )
+            );
         }
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_REWARD => {
             process_honey_token_lib(
