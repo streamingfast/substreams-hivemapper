@@ -238,6 +238,16 @@ pub fn process_honey_program_inner_instruction(
                 output
             );
         }
+        constants::HONEY_TOKEN_INSTRUCTION_PAY_MAP_COMSUMPTION_REWARD => {
+            process_honey_token_lib(
+                &compile_instruction.inner_instructions().nth(0).unwrap(),
+                &compile_instruction.inner_instructions().nth(1).unwrap(),
+                trx_hash,
+                timestamp,
+                compile_instruction.meta(),
+                output
+            );
+        }
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT => {}
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_2 => {}
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_CREATE_ACCOUNT_3 => {}
