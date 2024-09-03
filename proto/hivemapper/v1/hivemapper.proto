@@ -10,6 +10,7 @@ message Output {
   repeated AiTrainerPayment ai_trainer_payments = 50;
   repeated OperationalPayment operational_payments = 51;
   repeated RewardPayment reward_payments = 52;
+  repeated MapCreate map_create = 53;
 
   repeated Transfer transfers = 60;
   repeated Mint mints = 70;
@@ -33,6 +34,7 @@ message OperationalPayment { Mint mint = 1; }
 
 message Payment { Mint mint = 1; }
 message RewardPayment { Mint mint = 1; }
+message MapCreate { Burn burn = 1; }
 
 message Transfer {
   string trx_hash = 1;

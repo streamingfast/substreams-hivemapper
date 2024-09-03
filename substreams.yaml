@@ -8,8 +8,8 @@ package:
     These substream modules compose all the things to build up the Hivemapper substreams.
     See individual modules docs for help.
 
-#imports:
-#  solana-common: https://github.com/streamingfast/substreams-foundational-modules/releases/download/solana-common-v0.2.0/solana-common-v0.2.0.spkg
+imports:
+  solana_common: file://../../substreams-foundational-modules/solana-common/solana-common-v0.3.0.spkg
 
 protobuf:
   files:
@@ -30,8 +30,12 @@ modules:
     kind: map
     initialBlock: 158569587
     inputs:
-      - source: sf.solana.type.v1.Block
+      - source: sf.substreams.v1.Clock
+      - map: solana_common:transactions_by_programid_and_account_without_votes
     output:
       type: proto:hivemapper.types.v1.Output
 
 network: solana
+
+params:
+  solana_common:transactions_by_programid_and_account_without_votes: "program:BNH1dUp3ExFbgo3YctSqQbJXRFn3ffkwbcmSas8azfaW || program:EEjwuvCMVYjgHUeX1BM9qmUog59Pft88c3jbt2ATwcJw || (program:TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA && account:4vMsoUT2BWatFweudnQM1xedRLfJgJ7hswhcpz4xgBTy)"
