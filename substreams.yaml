@@ -30,7 +30,7 @@ modules:
     kind: map
     initialBlock: 158569587
     inputs:
-      - source: sf.substreams.v1.Clock
+#      - source: sf.substreams.v1.Clock
       - map: solana_common:transactions_by_programid_and_account_without_votes
     output:
       type: proto:hivemapper.types.v1.Output
