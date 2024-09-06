@@ -9,7 +9,7 @@ package:
     See individual modules docs for help.
 
 imports:
-  solana_common: file://../../substreams-foundational-modules/solana-common/solana-common-v0.3.0.spkg
+  solana_common: https://github.com/streamingfast/substreams-foundational-modules/releases/download/solana-common-v0.3.0/solana-common-v0.3.0.spkg
 
 protobuf:
   files:

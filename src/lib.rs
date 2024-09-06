@@ -11,13 +11,14 @@ use substreams::log;
 use substreams_solana::block_view::InstructionView;
 use substreams_solana::pb::sf::solana::r#type::v1::{ConfirmedTransaction, TokenBalance, TransactionStatusMeta};
 use substreams_solana_program_instructions::token_instruction_2022::TokenInstruction;
-use substreams_solana_program_instructions::token_instruction_2022::TokenInstruction::MintTo;
+
 use crate::event::{Event, Type};
 use crate::pb::sol::transactions::v1::Transactions;
 
 #[substreams::handlers::map]
+
+// pub fn map_outputs(clock: Clock, transactions: Transactions) -> Result<Output, Error> {
 pub fn map_outputs(transactions: Transactions) -> Result<Output, Error> {
-    // pub fn map_outputs(clock: Clock, transactions: Transactions) -> Result<Output, Error> {
     let mut output = Output::default();
     // let timestamp = clock.timestamp.as_ref().unwrap();
 
@@ -25,7 +26,6 @@ pub fn map_outputs(transactions: Transactions) -> Result<Output, Error> {
         for instruction in confirmed_trx.compiled_instructions() {
             process_instruction(
                 &mut output,
-                // timestamp.seconds,
                 0,
                 &instruction,
             );
@@ -109,12 +109,12 @@ pub fn process_honey_token_lib(
     output: &mut Output,
 ) {
     if instruction.program_id().to_string().as_str() != constants::HONEY_TOKEN_INSTRUCTION_LIB {
-        panic!("expected instruction of program HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB")
+        panic!("expected instruction of program HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB got {}", instruction.program_id().to_string().as_str())
     }
 
     match instruction.data()[0] {
         constants::HONEY_TOKEN_LIB_INITIALIZE_GLOBAL_STATE => {}
-        constants::HONEY_TOKEN_MAP_CREATE => {
+        constants::HONEY_LIB_MAP_CREATE => {
             process_map_create(secondinstruction, trx_hash, timestamp, meta, output);
         }
         constants::HONEY_LIB_MINT_TO => {
@@ -128,6 +128,8 @@ pub fn process_honey_token_lib(
             let burn = process_burns(secondinstruction, trx_hash, timestamp, meta);
             output.burns.push(burn);
         }
+
+        constants::HONEY_LIB_INITIALIZE_CONSUMPTION_REWARD_META => {}
 
         constants::HONEY_LIB_REINITIALIZE_GLOBAL_STATE => {}
         _ => {
@@ -193,7 +195,22 @@ pub fn process_honey_program_instruction(
 
         constants::HONEY_TOKEN_INSTRUCTION_CREATE_PAYMENT_INVOICE => {}
         constants::HONEY_TOKEN_INSTRUCTION_INITIALIZE_DEFAULT_PERIOD => {}
-        constants::HONEY_TOKEN_INSTRUCTION_INITIALIZE_PAYMENT_PERIOD => {}
+        constants::HONEY_TOKEN_INSTRUCTION_INITIALIZE_PAYMENT_PERIOD => {
+            if compile_instruction.inner_instructions().count() <= 2 {
+                return; //nothing to do
+            }
+            if compile_instruction.inner_instructions().count() == 3 {
+                process_mint_to(
+                    &compile_instruction.inner_instructions().nth(2).unwrap(),
+                    trx_hash,
+                    timestamp,
+                    meta,
+                    output,
+                );
+                return
+            }
+            panic!("expecting lest than 3 instructions got {} trx {}", compile_instruction.inner_instructions().count(), trx_hash)
+        }
         constants::HONEY_TOKEN_INSTRUCTION_UPDATE_MAP_PROGRESS => {}
         constants::HONEY_TOKEN_INSTRUCTION_CREATE_IMAGERY_QA_INVOICE => {}
 
@@ -272,10 +289,12 @@ pub fn process_honey_program_instruction(
                 let firstInstuction = &compile_instruction.inner_instructions().nth(0).unwrap();
                 let thirdInstuction = &compile_instruction.inner_instructions().nth(2).unwrap();
 
-                if firstInstuction.data()[0] == constants::HONEY_LIB_MINT_TO && thirdInstuction.data()[0] == constants::HONEY_LIB_MINT_TO {
+                if firstInstuction.data()[0] == constants::HONEY_LIB_MINT_TO && thirdInstuction.data()[0] == constants::HONEY_LIB_MINT_TO ||
+                    firstInstuction.data()[0] == constants::HONEY_LIB_MINT_TO_6C && thirdInstuction.data()[0] == constants::HONEY_LIB_MINT_TO_6C {
                     process_token_splitting_fleet_e9(compile_instruction, trx_hash, timestamp, meta, output);
                     return;
-                } else if firstInstuction.data()[0] == constants::HONEY_LIB_MINT_TO && thirdInstuction.data()[0] == constants::HONEY_LIB_BURN {
+                } else if firstInstuction.data()[0] == constants::HONEY_LIB_MINT_TO && thirdInstuction.data()[0] == constants::HONEY_LIB_BURN ||
+                    firstInstuction.data()[0] == constants::HONEY_LIB_MINT_TO_6C && thirdInstuction.data()[0] == constants::HONEY_LIB_BURN {
                     process_no_splitting_payments_e9(compile_instruction, trx_hash, timestamp, meta, output);
                     let burn = extract_burn(
                         &compile_instruction.inner_instructions().nth(3).unwrap(),
@@ -286,7 +305,7 @@ pub fn process_honey_program_instruction(
                     output.burns.push(burn);
                     return;
                 } else {
-                    panic!("unknown instruction pairing");
+                    panic!("unknown instruction pairing trx {}", trx_hash);
                 }
             }
 
