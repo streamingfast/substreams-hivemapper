@@ -34,7 +34,7 @@ message Output {
   repeated InitializedAccount initialized_account = 120;
 }
 ```
-See details on [the registry](https://substreams.dev/streamingfast/hivemapper/v0.1.8?tab=modules).
+See details on [the registry](https://substreams.dev/streamingfast/hivemapper/v0.1.8?tab=modules&proto=hivemapper.types.v1.Output).
 
 
 ## License
