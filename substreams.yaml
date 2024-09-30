@@ -4,9 +4,6 @@ package:
   version: v0.3.0-rc1
   url: https://github.com/streamingfast/substreams-hivemapper
   image: ./hivemapper.png
-  doc: |
-    These Substreams modules compose all the things to build up the Hivemapper substreams.
-    See individual modules docs for help.
 
 imports:
   solana_common: https://github.com/streamingfast/substreams-foundational-modules/releases/download/solana-common-v0.3.0/solana-common-v0.3.0.spkg
