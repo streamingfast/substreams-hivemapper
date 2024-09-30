@@ -1,3 +1,5 @@
+mod output;
+
 // @generated
 pub mod hivemapper {
     pub mod types {

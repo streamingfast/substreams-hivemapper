@@ -1,11 +1,11 @@
 specVersion: v0.1.0
 package:
   name: hivemapper
-  version: v0.2.10
+  version: v0.3.0-rc1
   url: https://github.com/streamingfast/substreams-hivemapper
   image: ./hivemapper.png
   doc: |
-    These substream modules compose all the things to build up the Hivemapper substreams.
+    These Substreams modules compose all the things to build up the Hivemapper substreams.
     See individual modules docs for help.
 
 imports:
@@ -30,7 +30,6 @@ modules:
     kind: map
     initialBlock: 158569587
     inputs:
-#      - source: sf.substreams.v1.Clock
       - map: solana_common:transactions_by_programid_and_account_without_votes
     output:
       type: proto:hivemapper.types.v1.Output

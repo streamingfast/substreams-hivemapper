@@ -1,3 +1,7 @@
+.PHONY: build
+build:
+	cargo build --target wasm32-unknown-unknown --release
+
 .PHONY: stream_local
 stream_local: build
 	substreams run substreams.yaml map_outputs --plaintext -e localhost:9000 -s $(START_BLOCK) -t +1
