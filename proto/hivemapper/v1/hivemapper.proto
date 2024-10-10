@@ -1,68 +1,84 @@
 syntax = "proto3";
 
+import "google/protobuf/descriptor.proto";
+
 package hivemapper.types.v1;
 
-message Output {
-  repeated TokenSplittingPayment token_splitting_payments = 10;
-  repeated RegularDriverPayment regular_driver_payments = 20;
-  repeated NoSplitPayment no_split_payments = 30;
 
-  repeated AiTrainerPayment ai_trainer_payments = 50;
-  repeated OperationalPayment operational_payments = 51;
-  repeated RewardPayment reward_payments = 52;
-  repeated MapCreate map_create = 53;
-  repeated MapConsumptionReward map_consumption_reward = 54;
-
-  repeated Transfer transfers = 60;
-  repeated Mint mints = 70;
-  repeated Burn burns = 80;
-
-  repeated InitializedAccount initialized_account = 120;
+// Define a custom option
+extend google.protobuf.MessageOptions {
+  bool is_table = 77701;
 }
 
-message TokenSplittingPayment {
-  Mint manager_mint = 1;
-  Mint driver_mint = 2;
+message Instruction {
+  option (is_table) = true;
+
+  oneof Item {
+    Mint mint = 1;
+    Burn burn = 2;
+    Transfer transfer = 3;
+    InitializedAccount initialized_account = 4;
+  }
 }
 
-message RegularDriverPayment { Mint mint = 1; }
+message Transaction {
+  option (is_table) = true;
+  string trx_hash = 1;
+  repeated Instruction instructions = 2;
+}
 
-message NoSplitPayment { Mint mint = 1; }
-
-message AiTrainerPayment { Mint mint = 1; }
-
-message OperationalPayment { Mint mint = 1; }
-
-message Payment { Mint mint = 1; }
-message RewardPayment { Mint mint = 1; }
-message MapConsumptionReward { Mint mint = 1; }
-message MapCreate { Burn burn = 1; }
+message Transactions {
+  repeated Transaction transactions = 3;
+}
 
 message Transfer {
-  string trx_hash = 1;
-  int64 timestamp = 2;
-  string from = 3;
-  string to = 4;
-  double amount = 5;
+  option (is_table) = true;
+
+  string from = 2;
+  string to = 3;
+  double amount = 4;
 }
 
 message Mint {
-  string trx_hash = 1;
-  int64 timestamp = 2;
-  string to = 4;
-  double amount = 5;
+  option (is_table) = true;
+
+  enum Type {
+    UNSET = 0;
+    MINT = 1;
+    REGULAR_DRIVER = 2;
+    NO_SPLIT = 3;
+    AI_TRAINER = 4;
+    OPERATIONAL = 5;
+    REWARD = 6;
+    FLEET_MANAGER = 7;
+    FLEET_DRIVER = 8;
+    MAP_CONSUMPTION = 9;
+  }
+
+  string to = 2;
+  double amount = 3;
+
+  Type type = 4;
 }
 
 message Burn {
-  string trx_hash = 1;
-  int64 timestamp = 2;
-  string from = 3;
-  double amount = 5;
+  option (is_table) = true;
+
+  enum Type {
+    UNSET = 0;
+    BURN = 1;
+    MAP_CREATE = 2;
+  }
+
+  string from = 2;
+  double amount = 3;
+  Type type = 4;
 }
 
 message InitializedAccount {
-  string trx_hash = 1;
-  string account = 2;
-  string mint = 3;
-  string owner = 4;
+  option (is_table) = true;
+
+  string account = 1;
+  string mint = 2;
+  string owner = 3;
 }
