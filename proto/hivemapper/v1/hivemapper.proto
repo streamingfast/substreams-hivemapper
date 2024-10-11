@@ -57,7 +57,7 @@ message Mint {
 
   string to = 2;
   double amount = 3;
-
+  
   Type type = 4;
 }
 
