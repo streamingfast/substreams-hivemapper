@@ -23,9 +23,10 @@ pub fn map_outputs(transactions: solTransactions) -> Result<Transactions, Error>
         for instruction in confirmed_trx.compiled_instructions() {
             process_instruction(&mut instructions, &instruction, );
         }
-        ;
+        
+        let hash = bs58::encode(confirmed_trx.hash()).into_string();
         trxs.push(Transaction {
-            trx_hash: bs58::encode(confirmed_trx.hash()).into_string(),
+            trx_hash: hash,
             instructions
         })
     }
@@ -207,7 +208,8 @@ pub fn process_honey_program_instruction(
                     meta,
                     mint::Type::Mint,
                 );
-                output.push(mint_instruction)
+                output.push(mint_instruction);
+                return;
             }
             panic!("expecting lest than 3 instructions got {} trx {}", compile_instruction.inner_instructions().count(), trx_hash)
         }
