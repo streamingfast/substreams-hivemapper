@@ -4,7 +4,6 @@ import "google/protobuf/descriptor.proto";
 
 package hivemapper.types.v1;
 
-
 // Define a custom option
 extend google.protobuf.MessageOptions {
   bool is_table = 77701;
