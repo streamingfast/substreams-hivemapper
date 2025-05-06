@@ -1,4 +1,4 @@
-use crate::pb::hivemapper::types::v1::{Burn, InitializedAccount, Mint, Transfer};
+use crate::pb::hivemapper::types::v2::{Burn, InitializedAccount, Mint, Transfer};
 
 pub struct Event {
     pub r#type: Type,

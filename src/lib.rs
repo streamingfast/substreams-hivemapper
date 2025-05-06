@@ -2,40 +2,71 @@ mod constants;
 mod event;
 mod pb;
 
+use crate::event::{Event, Type};
+use crate::pb::hivemapper::types::v2::{
+    burn, instruction, instruction::Item, mint, Burn, InitializedAccount, Instruction, Mint, Transaction, Transactions,
+    Transfer,
+};
+use pb::sol::transactions::v1::Transactions as solTransactions;
 use std::ops::Div;
-use crate::pb::hivemapper::types::v1::{burn, mint, Burn, InitializedAccount, Instruction, Mint, Transaction, Transactions, Transfer};
+use std::ptr::hash;
 use substreams::errors::Error;
-use substreams_solana::Address;
 use substreams::log;
 use substreams_solana::block_view::InstructionView;
 use substreams_solana::pb::sf::solana::r#type::v1::{ConfirmedTransaction, TokenBalance, TransactionStatusMeta};
+use substreams_solana::Address;
 use substreams_solana_program_instructions::token_instruction_2022::TokenInstruction;
-use pb::sol::transactions::v1::Transactions as solTransactions;
-use crate::event::{Event, Type};
-use crate::pb::hivemapper::types::v1::instruction::Item;
+
+struct OutputInstructions {
+    transaction_hash: String,
+    ordinal: i64,
+    instructions: Vec<Instruction>,
+}
+
+impl OutputInstructions {
+    pub fn new(transaction_hash: String) -> Self {
+        Self {
+            transaction_hash,
+            ordinal: 0,
+            instructions: vec![],
+        }
+    }
+
+    pub fn add(&mut self, item: Item) {
+        self.instructions.push(Instruction {
+            instruction_id: self.transaction_hash.to_string() + "-" + &self.ordinal.to_string(),
+            item: Some(item)
+        });
+
+        self.ordinal += 1;
+    }
+}
 
 #[substreams::handlers::map]
 pub fn map_outputs(transactions: solTransactions) -> Result<Transactions, Error> {
     let mut trxs: Vec<Transaction> = vec![];
-    
+
     for confirmed_trx in transactions_owned(transactions) {
-        let mut instructions: Vec<Instruction>  = vec![];
-        for instruction in confirmed_trx.compiled_instructions() {
-            process_instruction(&mut instructions, &instruction, );
-        }
-        
         let hash = bs58::encode(confirmed_trx.hash()).into_string();
+
+        let mut output_instructions = OutputInstructions::new(hash.clone());
+
+        for instruction in confirmed_trx.compiled_instructions() {
+            process_instruction(&mut output_instructions, &instruction);
+        }
+
+
         trxs.push(Transaction {
             trx_hash: hash,
-            instructions
+            instructions: output_instructions.instructions,
         })
     }
 
-    Ok(Transactions{ transactions: trxs })
+    Ok(Transactions { transactions: trxs })
 }
 
 /// Iterates over successful transactions in given block and take ownership.
-pub fn transactions_owned(transactions: solTransactions) -> impl Iterator<Item=ConfirmedTransaction> {
+pub fn transactions_owned(transactions: solTransactions) -> impl Iterator<Item = ConfirmedTransaction> {
     transactions.transactions.into_iter().filter(|trx| -> bool {
         if let Some(meta) = &trx.meta {
             return meta.err.is_none();
@@ -44,8 +75,7 @@ pub fn transactions_owned(transactions: solTransactions) -> impl Iterator<Item=C
     })
 }
 
-
-pub fn process_instruction(output: &mut Vec<Instruction>, compile_instruction: &InstructionView) {
+pub fn process_instruction(output: &mut OutputInstructions, compile_instruction: &InstructionView) {
     let trx_hash = &bs58::encode(compile_instruction.transaction().hash()).into_string();
     match compile_instruction.program_id().to_string().as_ref() {
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM => {
@@ -75,22 +105,13 @@ pub fn process_instruction(output: &mut Vec<Instruction>, compile_instruction: &
                 Ok(ev_option) => {
                     if let Some(ev) = ev_option {
                         match ev.r#type {
-                            Type::Mint(mint) => output.push(
-                                Instruction {
-                                    item: Some(Item::Mint(mint)),
-                                }),
-                            Type::Burn(burn) => output.push(Instruction {
-                                item: Some(Item::Burn(burn)),
-                            }),
+                            Type::Mint(mint) => output.add(Item::Mint(mint)),
+                            Type::Burn(burn) => output.add(Item::Burn(burn)),
                             Type::Transfer(transfer) => {
-                                output.push(Instruction {
-                                    item: Some(Item::Transfer(transfer)),
-                                });
+                                output.add(Item::Transfer(transfer));
                             }
                             Type::InitializeAccount(initialize_account) => {
-                                output.push(Instruction {
-                                    item: Some(Item::InitializedAccount(initialize_account)),
-                                });
+                                output.add(Item::InitializedAccount(initialize_account));
                             }
                         }
                     }
@@ -108,10 +129,13 @@ pub fn process_honey_token_lib(
     secondinstruction: &InstructionView,
     trx_hash: &String,
     meta: &TransactionStatusMeta,
-    output: &mut Vec<Instruction>,
+    output: &mut OutputInstructions,
 ) {
     if instruction.program_id().to_string().as_str() != constants::HONEY_TOKEN_INSTRUCTION_LIB {
-        panic!("expected instruction of program HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB got {}", instruction.program_id().to_string().as_str())
+        panic!(
+            "expected instruction of program HONEY_TOKEN_INSTRUCTION_PROGRAM_LIB got {}",
+            instruction.program_id().to_string().as_str()
+        )
     }
 
     match instruction.data()[0] {
@@ -122,15 +146,15 @@ pub fn process_honey_token_lib(
         constants::HONEY_LIB_MINT_TO => {
             process_mint_to(secondinstruction, trx_hash, meta, output);
             let mint = extract_mint_to_instruction(secondinstruction, trx_hash, meta, mint::Type::Mint);
-            output.push(mint)
+            output.add(mint)
         }
         constants::HONEY_LIB_BURN => {
             let burn = extract_burn_instruction(secondinstruction, trx_hash, meta, burn::Type::Burn);
-            output.push(burn);
+            output.add(burn);
         }
         constants::HONEY_LIB_BURN_AND_ADD_ADDITIONAL_HONEY_SUPPLY => {
             let burn = extract_burn_instruction(secondinstruction, trx_hash, meta, burn::Type::Burn);
-            output.push(burn);
+            output.add(burn);
         }
 
         constants::HONEY_LIB_INITIALIZE_CONSUMPTION_REWARD_META => {}
@@ -146,31 +170,29 @@ pub fn process_default_inner_instruction(
     compile_instruction: &InstructionView,
     trx_hash: &String,
     meta: &TransactionStatusMeta,
-    output: &mut Vec<Instruction>,
+    output: &mut OutputInstructions,
 ) {
     for inner in compile_instruction.inner_instructions() {
         match inner.program_id().to_string().as_ref() {
-            constants::SOLANA_TOKEN_PROGRAM => {
-                match process_token_instruction(&inner, meta) {
-                    Err(err) => {
-                        panic!("trx_hash {} process token instructions {}", trx_hash, err);
-                    }
-                    Ok(ev_option) => {
-                        if let Some(ev) = ev_option {
-                            match ev.r#type {
-                                Type::Mint(mint) => output.push(Instruction { item: Some(Item::Mint(mint)) }),
-                                Type::Burn(burn) => output.push(Instruction { item: Some(Item::Burn(burn)) }),
-                                Type::Transfer(transfer) => {
-                                    output.push(Instruction { item: Some(Item::Transfer(transfer)) });
-                                }
-                                Type::InitializeAccount(initialize_account) => {
-                                    output.push(Instruction { item: Some(Item::InitializedAccount(initialize_account)) });
-                                }
+            constants::SOLANA_TOKEN_PROGRAM => match process_token_instruction(&inner, meta) {
+                Err(err) => {
+                    panic!("trx_hash {} process token instructions {}", trx_hash, err);
+                }
+                Ok(ev_option) => {
+                    if let Some(ev) = ev_option {
+                        match ev.r#type {
+                            Type::Mint(mint) => output.add(Item::Mint(mint)),
+                            Type::Burn(burn) => output.add(Item::Burn(burn)),
+                            Type::Transfer(transfer) => {
+                                output.add(Item::Transfer(transfer));
+                            }
+                            Type::InitializeAccount(initialize_account) => {
+                                output.add(Item::InitializedAccount(initialize_account));
                             }
                         }
                     }
                 }
-            }
+            },
             _ => {
                 // log::info!("inner not match {} {:?} -- {:?} {}", inner.program_id(), inner.program_id().0, constants::SOLANA_TOKEN_PROGRAM, bs58::encode(constants::SOLANA_TOKEN_PROGRAM).into_string());
             }
@@ -182,7 +204,7 @@ pub fn process_honey_program_instruction(
     compile_instruction: &InstructionView,
     trx_hash: &String,
     meta: &TransactionStatusMeta,
-    output: &mut Vec<Instruction>,
+    output: &mut OutputInstructions,
 ) {
     match compile_instruction.data()[0] {
         constants::HONEY_TOKEN_INSTRUCTION_PAY_TO => {
@@ -192,7 +214,7 @@ pub fn process_honey_program_instruction(
                 meta,
                 mint::Type::RegularDriver,
             );
-            output.push(mint_instruction)
+            output.add(mint_instruction)
         }
 
         constants::HONEY_TOKEN_INSTRUCTION_CREATE_PAYMENT_INVOICE => {}
@@ -208,10 +230,14 @@ pub fn process_honey_program_instruction(
                     meta,
                     mint::Type::Mint,
                 );
-                output.push(mint_instruction);
+                output.add(mint_instruction);
                 return;
             }
-            panic!("expecting lest than 3 instructions got {} trx {}", compile_instruction.inner_instructions().count(), trx_hash)
+            panic!(
+                "expecting lest than 3 instructions got {} trx {}",
+                compile_instruction.inner_instructions().count(),
+                trx_hash
+            )
         }
         constants::HONEY_TOKEN_INSTRUCTION_UPDATE_MAP_PROGRESS => {}
         constants::HONEY_TOKEN_INSTRUCTION_CREATE_IMAGERY_QA_INVOICE => {}
@@ -222,7 +248,7 @@ pub fn process_honey_program_instruction(
                 meta,
                 mint::Type::AiTrainer,
             );
-            output.push(mint_instruction)
+            output.add(mint_instruction)
         }
 
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_OPERATIOANL_REWARD => {
@@ -232,7 +258,7 @@ pub fn process_honey_program_instruction(
                 meta,
                 mint::Type::Operational,
             );
-            output.push(mint_instruction)
+            output.add(mint_instruction)
         }
 
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_AND_FORWARD_REWARD_AC => {
@@ -261,7 +287,7 @@ pub fn process_honey_program_instruction(
                 meta,
                 mint::Type::MapConsumption,
             );
-            output.push(mint_instruction)
+            output.add(mint_instruction)
         }
 
         constants::HONEY_TOKEN_INSTRUCTION_PROGRAM_PAY_REWARD => {
@@ -271,7 +297,7 @@ pub fn process_honey_program_instruction(
                 meta,
                 mint::Type::RegularDriver,
             );
-            output.push(mint_instruction)
+            output.add(mint_instruction)
         }
         constants::HONEY_TOKEN_INSTRUCTION_PAY_AND_FORWARD_CONSUMPTION_REWARD => {
             if compile_instruction.inner_instructions().count() == 6 {
@@ -282,7 +308,7 @@ pub fn process_honey_program_instruction(
                     meta,
                     burn::Type::Burn,
                 );
-                output.push(burn);
+                output.add(burn);
                 return;
             }
 
@@ -290,12 +316,18 @@ pub fn process_honey_program_instruction(
                 let first_instruction = &compile_instruction.inner_instructions().nth(0).unwrap();
                 let third_instruction = &compile_instruction.inner_instructions().nth(2).unwrap();
 
-                if first_instruction.data()[0] == constants::HONEY_LIB_MINT_TO && third_instruction.data()[0] == constants::HONEY_LIB_MINT_TO ||
-                    first_instruction.data()[0] == constants::HONEY_LIB_MINT_TO_6C && third_instruction.data()[0] == constants::HONEY_LIB_MINT_TO_6C {
+                if first_instruction.data()[0] == constants::HONEY_LIB_MINT_TO
+                    && third_instruction.data()[0] == constants::HONEY_LIB_MINT_TO
+                    || first_instruction.data()[0] == constants::HONEY_LIB_MINT_TO_6C
+                        && third_instruction.data()[0] == constants::HONEY_LIB_MINT_TO_6C
+                {
                     process_token_splitting_fleet_e9(compile_instruction, trx_hash, meta, output);
                     return;
-                } else if first_instruction.data()[0] == constants::HONEY_LIB_MINT_TO && third_instruction.data()[0] == constants::HONEY_LIB_BURN ||
-                    first_instruction.data()[0] == constants::HONEY_LIB_MINT_TO_6C && third_instruction.data()[0] == constants::HONEY_LIB_BURN {
+                } else if first_instruction.data()[0] == constants::HONEY_LIB_MINT_TO
+                    && third_instruction.data()[0] == constants::HONEY_LIB_BURN
+                    || first_instruction.data()[0] == constants::HONEY_LIB_MINT_TO_6C
+                        && third_instruction.data()[0] == constants::HONEY_LIB_BURN
+                {
                     process_no_splitting_payments_e9(compile_instruction, trx_hash, meta, output);
                     let burn = extract_burn_instruction(
                         &compile_instruction.inner_instructions().nth(3).unwrap(),
@@ -303,7 +335,7 @@ pub fn process_honey_program_instruction(
                         meta,
                         burn::Type::Burn,
                     );
-                    output.push(burn);
+                    output.add(burn);
                     return;
                 } else {
                     panic!("unknown instruction pairing trx {}", trx_hash);
@@ -315,7 +347,11 @@ pub fn process_honey_program_instruction(
                 return;
             }
 
-            panic!("expecting 2 or 4 or 6 instructions got {} trx {}", compile_instruction.inner_instructions().count(), trx_hash)
+            panic!(
+                "expecting 2 or 4 or 6 instructions got {} trx {}",
+                compile_instruction.inner_instructions().count(),
+                trx_hash
+            )
         }
 
         constants::HONEY_TOKEN_INSTRUCTION_PAY_CONSUMPTION_REWARD => {
@@ -326,8 +362,7 @@ pub fn process_honey_program_instruction(
                     meta,
                     mint::Type::MapConsumption,
                 );
-                output.push(mint_instruction);
-
+                output.add(mint_instruction);
 
                 let burn = extract_burn_instruction(
                     &compile_instruction.inner_instructions().nth(3).unwrap(),
@@ -335,7 +370,7 @@ pub fn process_honey_program_instruction(
                     meta,
                     burn::Type::Burn,
                 );
-                output.push(burn);
+                output.add(burn);
                 return;
             }
             if compile_instruction.inner_instructions().count() == 2 {
@@ -345,10 +380,14 @@ pub fn process_honey_program_instruction(
                     meta,
                     mint::Type::MapConsumption,
                 );
-                output.push(mint_instruction);
+                output.add(mint_instruction);
                 return;
             }
-            panic!("expecting 2 or 4 instructions got {} trx {}", compile_instruction.inner_instructions().count(), trx_hash)
+            panic!(
+                "expecting 2 or 4 instructions got {} trx {}",
+                compile_instruction.inner_instructions().count(),
+                trx_hash
+            )
         }
 
         constants::HONEY_TOKEN_INSTRUCTION_PAY_BURST_REWARD => {
@@ -359,7 +398,7 @@ pub fn process_honey_program_instruction(
                     meta,
                     mint::Type::RegularDriver,
                 );
-                output.push(mint_instruction);
+                output.add(mint_instruction);
 
                 let burn = extract_burn_instruction(
                     &compile_instruction.inner_instructions().nth(3).unwrap(),
@@ -367,10 +406,14 @@ pub fn process_honey_program_instruction(
                     meta,
                     burn::Type::Burn,
                 );
-                output.push(burn);
+                output.add(burn);
                 return;
             }
-            panic!("expecting 4 instructions got {} trx {}", compile_instruction.inner_instructions().count(), trx_hash)
+            panic!(
+                "expecting 4 instructions got {} trx {}",
+                compile_instruction.inner_instructions().count(),
+                trx_hash
+            )
         }
 
         constants::HONEY_TOKEN_INSTRUCTION_PAY_AND_FORWARD_BURST_REWARD => {
@@ -382,7 +425,7 @@ pub fn process_honey_program_instruction(
                     meta,
                     burn::Type::Burn,
                 );
-                output.push(burn);
+                output.add(burn);
                 return;
             }
 
@@ -390,10 +433,14 @@ pub fn process_honey_program_instruction(
                 let first_instruction = &compile_instruction.inner_instructions().nth(0).unwrap();
                 let third_instruction = &compile_instruction.inner_instructions().nth(2).unwrap();
 
-                if first_instruction.data()[0] == constants::HONEY_LIB_MINT_TO && third_instruction.data()[0] == constants::HONEY_LIB_MINT_TO {
+                if first_instruction.data()[0] == constants::HONEY_LIB_MINT_TO
+                    && third_instruction.data()[0] == constants::HONEY_LIB_MINT_TO
+                {
                     process_token_splitting_fleet_e9(compile_instruction, trx_hash, meta, output);
                     return;
-                } else if first_instruction.data()[0] == constants::HONEY_LIB_MINT_TO && third_instruction.data()[0] == constants::HONEY_LIB_BURN {
+                } else if first_instruction.data()[0] == constants::HONEY_LIB_MINT_TO
+                    && third_instruction.data()[0] == constants::HONEY_LIB_BURN
+                {
                     process_no_splitting_payments_e9(compile_instruction, trx_hash, meta, output);
                     let burn = extract_burn_instruction(
                         &compile_instruction.inner_instructions().nth(3).unwrap(),
@@ -401,7 +448,7 @@ pub fn process_honey_program_instruction(
                         meta,
                         burn::Type::Burn,
                     );
-                    output.push(burn);
+                    output.add(burn);
                     return;
                 } else {
                     panic!("unknown instruction pairing");
@@ -409,11 +456,15 @@ pub fn process_honey_program_instruction(
             }
 
             if compile_instruction.inner_instructions().count() == 2 {
-                process_no_splitting_payments_e9(compile_instruction, trx_hash,  meta, output);
+                process_no_splitting_payments_e9(compile_instruction, trx_hash, meta, output);
                 return;
             }
 
-            panic!("expecting 2 or 4 or 6 instructions got {} trx {}", compile_instruction.inner_instructions().count(), trx_hash)
+            panic!(
+                "expecting 2 or 4 or 6 instructions got {} trx {}",
+                compile_instruction.inner_instructions().count(),
+                trx_hash
+            )
         }
 
         _ => {
@@ -422,19 +473,16 @@ pub fn process_honey_program_instruction(
     }
 }
 
-
-
 fn extract_mint_to_instruction(
     mint_instruction: &InstructionView,
     trx_hash: &String,
     meta: &TransactionStatusMeta,
     t: mint::Type,
-) -> Instruction {
+) -> Item {
     let mint = extract_mint_to(mint_instruction, trx_hash, meta, t);
-    Instruction {
-        item: Some(Item::Mint(mint)),
-    }
+    Item::Mint(mint)
 }
+
 fn extract_mint_to(
     mint_instruction: &InstructionView,
     trx_hash: &String,
@@ -467,11 +515,9 @@ fn extract_burn_instruction(
     trx_hash: &String,
     meta: &TransactionStatusMeta,
     t: burn::Type,
-) -> Instruction {
+) -> Item {
     let burn = extract_burn(burn_instruction, trx_hash, meta, t);
-    Instruction {
-        item: Some(Item::Burn(burn)),
-    }
+    Item::Burn(burn)
 }
 
 fn extract_burn(
@@ -501,17 +547,14 @@ fn extract_burn(
     panic!("no burn found, trx_hash trx {}", trx_hash)
 }
 
-
 pub fn process_map_create(
     instruction: &InstructionView,
     trx_hash: &String,
     meta: &TransactionStatusMeta,
-    output: &mut Vec<Instruction>,
+    output: &mut OutputInstructions,
 ) {
     let burn = extract_burn(&instruction, trx_hash, meta, burn::Type::MapCreate);
-    output.push(Instruction {
-        item: Some(Item::Burn(burn)),
-    });
+    output.add(Item::Burn(burn));
 
     return;
 }
@@ -519,10 +562,10 @@ pub fn process_mint_to(
     instruction: &InstructionView,
     trx_hash: &String,
     meta: &TransactionStatusMeta,
-    output: &mut Vec<Instruction>,
+    output: &mut OutputInstructions,
 ) {
     let mint = extract_mint_to_instruction(&instruction, trx_hash, meta, mint::Type::Mint);
-    output.push(mint);
+    output.add(mint);
 
     return;
 }
@@ -531,7 +574,7 @@ pub fn process_token_splitting_fleet_ac(
     compile_instruction: &InstructionView,
     trx_hash: &String,
     meta: &TransactionStatusMeta,
-    output: &mut Vec<Instruction>,
+    output: &mut OutputInstructions,
 ) {
     let fleet_driver_account = &compile_instruction.accounts()[3];
     let fleet_account = &compile_instruction.accounts()[4];
@@ -568,22 +611,24 @@ pub fn process_token_splitting_fleet_ac(
         }
     }
     if manager_mint.is_some() && driver_mint.is_some() {
-        output.push(Instruction {
-            item: Some(Item::Mint(manager_mint.unwrap())),
-        });
+        output.add(Item::Mint(manager_mint.unwrap()));
 
-        output.push(Instruction {
-            item: Some(Item::Mint(driver_mint.unwrap())),
-        });
+
+        output.add(Item::Mint(driver_mint.unwrap()));
     } else {
-        panic!("Missing a mints {} {} trx {}", manager_mint.is_some(), driver_mint.is_some(), trx_hash);
+        panic!(
+            "Missing a mints {} {} trx {}",
+            manager_mint.is_some(),
+            driver_mint.is_some(),
+            trx_hash
+        );
     }
 }
 pub fn process_token_splitting_fleet_e9(
     compile_instruction: &InstructionView,
     trx_hash: &String,
     meta: &TransactionStatusMeta,
-    output: &mut Vec<Instruction>,
+    output: &mut OutputInstructions,
 ) {
     let fleet_driver_account = &compile_instruction.accounts()[4];
     let fleet_account = &compile_instruction.accounts()[5];
@@ -612,7 +657,13 @@ pub fn process_token_splitting_fleet_e9(
                                     log::info!("{}", a.to_string())
                                 }
                                 // return;
-                                panic!("mint not found! for driver or fleet trx {}, mint to {} fleet {} driver {}", trx_hash, mint.to, fleet_account.to_string(), fleet_driver_account.to_string());
+                                panic!(
+                                    "mint not found! for driver or fleet trx {}, mint to {} fleet {} driver {}",
+                                    trx_hash,
+                                    mint.to,
+                                    fleet_account.to_string(),
+                                    fleet_driver_account.to_string()
+                                );
                             }
                         }
                         _ => {}
@@ -622,18 +673,15 @@ pub fn process_token_splitting_fleet_e9(
         }
     }
     if manager_mint.is_some() && driver_mint.is_some() {
-        output.push(
-            Instruction {
-                item: Some(Item::Mint(manager_mint.unwrap())),
-            }
-        );
-        output.push(
-            Instruction {
-                item: Some(Item::Mint(driver_mint.unwrap())),
-            }
-        );
+        output.add(Item::Mint(manager_mint.unwrap()));
+        output.add(Item::Mint(driver_mint.unwrap()));
     } else {
-        panic!("Missing a mints {} {} trx {}", manager_mint.is_some(), driver_mint.is_some(), trx_hash);
+        panic!(
+            "Missing a mints {} {} trx {}",
+            manager_mint.is_some(),
+            driver_mint.is_some(),
+            trx_hash
+        );
     }
 }
 
@@ -641,13 +689,13 @@ pub fn process_no_splitting_payments_ac(
     compile_instruction: &InstructionView,
     trx_hash: &String,
     meta: &TransactionStatusMeta,
-    output: &mut Vec<Instruction>,
+    output: &mut OutputInstructions,
 ) {
     let driver_account = &compile_instruction.accounts()[3];
     let manager_account = &compile_instruction.accounts()[4];
 
     let instruction = compile_instruction.inner_instructions().nth(1).unwrap();
-    let mut mint = extract_mint_to(&instruction, trx_hash, meta, mint::Type::Unset);
+    let mint = extract_mint_to(&instruction, trx_hash, meta, mint::Type::Unset);
 
     let mut manager_mint = Mint {
         to: manager_account.to_string(),
@@ -669,23 +717,15 @@ pub fn process_no_splitting_payments_ac(
         panic!("mint not found! for driver or fleet trx {}", trx_hash);
     }
 
-    output.push(
-        Instruction {
-            item: Some(Item::Mint(manager_mint)),
-        }
-    );
-    output.push(
-        Instruction {
-            item: Some(Item::Mint(driver_mint)),
-        }
-    );
+    output.add(Item::Mint(manager_mint));
+    output.add(Item::Mint(driver_mint));
 }
 
 pub fn process_no_splitting_payments_e9(
     compile_instruction: &InstructionView,
     trx_hash: &String,
     meta: &TransactionStatusMeta,
-    output: &mut Vec<Instruction>,
+    output: &mut OutputInstructions,
 ) {
     let driver_account = &compile_instruction.accounts()[4];
     let manager_account = &compile_instruction.accounts()[5];
@@ -709,21 +749,18 @@ pub fn process_no_splitting_payments_e9(
     } else if mint.to.eq(&driver_account.to_string()) {
         driver_mint = mint;
     } else {
-        panic!("mint not found! for driver or fleet trx {}, mint to {} fleet {} driver {}", trx_hash, mint.to, manager_account.to_string(), driver_account.to_string());
+        panic!(
+            "mint not found! for driver or fleet trx {}, mint to {} fleet {} driver {}",
+            trx_hash,
+            mint.to,
+            manager_account.to_string(),
+            driver_account.to_string()
+        );
     }
 
-    output.push(
-        Instruction {
-            item: Some(Item::Mint(manager_mint)),
-        }
-    );
-    output.push(
-        Instruction {
-            item: Some(Item::Mint(driver_mint)),
-        }
-    );
+    output.add(Item::Mint(manager_mint));
+    output.add(Item::Mint(driver_mint));
 }
-
 
 pub fn process_token_instruction(
     instruction: &InstructionView,
@@ -744,7 +781,7 @@ pub fn process_token_instruction(
                     let destination = &instruction.accounts()[1];
                     // let destination = &accounts[inst_accounts[1] as usize];
                     return Ok(Some(Event {
-                        r#type: (Type::Transfer(crate::pb::hivemapper::types::v1::Transfer {
+                        r#type: (Type::Transfer(Transfer {
                             from: source.to_string(),
                             to: destination.to_string(),
                             amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
@@ -761,7 +798,7 @@ pub fn process_token_instruction(
                     let destination = &instruction.accounts()[2];
                     // let destination = &accounts[inst_accounts[2] as usize];
                     return Ok(Some(Event {
-                        r#type: (Type::Transfer(crate::pb::hivemapper::types::v1::Transfer {
+                        r#type: (Type::Transfer(Transfer {
                             from: source.to_string(),
                             to: destination.to_string(),
                             amount: amount_to_decimals(amt as f64, constants::HONEY_TOKEN_DECIMALS as f64),
@@ -837,7 +874,6 @@ pub fn process_token_instruction(
     return Ok(None);
 }
 
-
 fn amount_to_decimals(amount: f64, decimal: f64) -> f64 {
     let base: f64 = 10.0;
     return amount.div(&(base.powf(decimal)));
@@ -845,7 +881,9 @@ fn amount_to_decimals(amount: f64, decimal: f64) -> f64 {
 
 pub fn is_honey_token_transfer(pre_token_balances: &Vec<TokenBalance>, account: &Address) -> bool {
     for token_balance in pre_token_balances.iter() {
-        if token_balance.owner.eq(account.to_string().as_str()) && token_balance.mint.eq(constants::HONEY_CONTRACT_ADDRESS) {
+        if token_balance.owner.eq(account.to_string().as_str())
+            && token_balance.mint.eq(constants::HONEY_CONTRACT_ADDRESS)
+        {
             return true;
         }
     }

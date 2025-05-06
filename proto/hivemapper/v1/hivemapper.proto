@@ -1,37 +1,44 @@
 syntax = "proto3";
 
 import "google/protobuf/descriptor.proto";
+import "schema/schema.proto";
 
-package hivemapper.types.v1;
-
-// Define a custom option
-extend google.protobuf.MessageOptions {
-  bool is_table = 77701;
-}
-
-message Instruction {
-  option (is_table) = true;
-
-  oneof Item {
-    Mint mint = 1;
-    Burn burn = 2;
-    Transfer transfer = 3;
-    InitializedAccount initialized_account = 4;
-  }
-}
-
-message Transaction {
-  option (is_table) = true;
-  string trx_hash = 1;
-  repeated Instruction instructions = 2;
-}
+package hivemapper.types.v2;
 
 message Transactions {
   repeated Transaction transactions = 3;
 }
 
+message Transaction {
+  option (schema.table) = {
+    name: "transactions"
+  };
+
+  string trx_hash = 1 [(schema.field) = { primary_key: true }];
+  repeated Instruction instructions = 2;
+}
+
+message Instruction {
+  option (schema.table) = {
+    name: "instructions"
+    child_of: "transactions on trx_hash"
+  };
+
+  string instruction_id =1 [(schema.field) = { primary_key: true }];
+
+  oneof Item {
+    Mint mint = 10;
+    Burn burn = 11;
+    Transfer transfer = 12;
+    InitializedAccount initialized_account = 13;
+  }
+}
+
 message Transfer {
-  option (is_table) = true;
+  option (schema.table) = {
+    name: "transfers"
+    child_of: "instructions on instruction_id"
+  };
 
   string from = 2;
   string to = 3;
@@ -39,7 +46,10 @@ message Transfer {
 }
 
 message Mint {
-  option (is_table) = true;
+  option (schema.table) = {
+    name: "mints"
+    child_of: "instructions on instruction_id"
+  };
 
   enum Type {
     UNSET = 0;
@@ -61,7 +71,10 @@ message Mint {
 }
 
 message Burn {
-  option (is_table) = true;
+  option (schema.table) = {
+    name: "burns"
+    child_of: "instructions on instruction_id"
+  };
 
   enum Type {
     UNSET = 0;
@@ -74,8 +87,12 @@ message Burn {
   Type type = 4;
 }
 
-message InitializedAccount {
-  option (is_table) = true;
+  message InitializedAccount {
+    option (schema.table) = {
+      name: "initialized_accounts"
+      child_of: "instructions on instruction_id"
+    };
+
 
   string account = 1;
   string mint = 2;
