@@ -415,16 +415,33 @@ pub fn process_honey_program_instruction(
 
 
         constants::HONEY_TOKEN_INSTRUCTION_PAY_AND_BURN_QA_REWARD => {
-            let mint_instruction = &compile_instruction.inner_instructions().nth(6).unwrap();
-            let burn_instruction = &compile_instruction.inner_instructions().nth(8).unwrap();
 
-            let mint = extract_mint_to(mint_instruction, trx_hash, timestamp, meta);
-            let burn = extract_burn(burn_instruction, trx_hash, timestamp, meta);
+            if compile_instruction.inner_instructions().count() == 4 {
 
-            output.mints.push(mint);
-            output.burns.push(burn);
+                let mint_instruction = &compile_instruction.inner_instructions().nth(1).unwrap();
+                let burn_instruction = &compile_instruction.inner_instructions().nth(3).unwrap();
 
-            return;
+                let mint = extract_mint_to(mint_instruction, trx_hash, timestamp, meta);
+                let burn = extract_burn(burn_instruction, trx_hash, timestamp, meta);
+
+                output.mints.push(mint);
+                output.burns.push(burn);
+                return;
+            }
+
+            if compile_instruction.inner_instructions().count() == 9 {
+                let mint_instruction = &compile_instruction.inner_instructions().nth(6).unwrap();
+                let burn_instruction = &compile_instruction.inner_instructions().nth(8).unwrap();
+
+                let mint = extract_mint_to(mint_instruction, trx_hash, timestamp, meta);
+                let burn = extract_burn(burn_instruction, trx_hash, timestamp, meta);
+
+                output.mints.push(mint);
+                output.burns.push(burn);
+                return;
+            }
+
+            panic!("expecting 9 instructions got {} trx {}", compile_instruction.inner_instructions().count(), trx_hash)
         }
 
         _ => {
