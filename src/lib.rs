@@ -2,6 +2,7 @@ mod constants;
 mod event;
 mod pb;
 
+use std::cmp::min;
 use std::ops::Div;
 use crate::pb::hivemapper::types::v1::{AiTrainerPayment, Burn, InitializedAccount, MapConsumptionReward, MapCreate, Mint, NoSplitPayment, OperationalPayment, Output, RegularDriverPayment, RewardPayment, TokenSplittingPayment};
 use substreams::errors::Error;
@@ -410,6 +411,20 @@ pub fn process_honey_program_instruction(
             }
 
             panic!("expecting 2 or 4 or 6 instructions got {} trx {}", compile_instruction.inner_instructions().count(), trx_hash)
+        }
+
+
+        constants::HONEY_TOKEN_INSTRUCTION_PAY_AND_BURN_QA_REWARD => {
+            let mint_instruction = &compile_instruction.inner_instructions().nth(6).unwrap();
+            let burn_instruction = &compile_instruction.inner_instructions().nth(8).unwrap();
+
+            let mint = extract_mint_to(mint_instruction, trx_hash, timestamp, meta);
+            let burn = extract_burn(burn_instruction, trx_hash, timestamp, meta);
+
+            output.mints.push(mint);
+            output.burns.push(burn);
+
+            return;
         }
 
         _ => {
